@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Type Learning Engine</title>
+
+<style>
+body {
+  font-family: Arial;
+  background: #0b0b0f;
+  color: white;
+  margin: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+#topBar {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  padding: 8px;
+  flex-shrink: 0;
+}
+
+.mode-btn, #nextBtn {
+  padding: 8px 12px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+#gameArea {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 5px;
+}
+
+.type-btn {
+  width: 220px;
+  padding: 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.15);
+  cursor: pointer;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+/* TYPE COLORS */
+.Fire { background:#F08030; }
+.Water { background:#6890F0; }
+.Grass { background:#78C850; }
+.Electric { background:#F8D030; color:#111; }
+.Ice { background:#98D8D8; color:#111; }
+.Fighting { background:#C03028; }
+.Poison { background:#A040A0; }
+.Ground { background:#E0C068; color:#111; }
+.Flying { background:#A890F0; }
+.Psychic { background:#F85888; }
+.Bug { background:#A8B820; }
+.Rock { background:#B8A038; }
+.Ghost { background:#705898; }
+.Dragon { background:#7038F8; }
+.Dark { background:#705848; }
+.Steel { background:#B8B8D0; color:#111; }
+.Fairy { background:#EE99AC; color:#111; }
+.Normal { background:#A8A878; }
+
+#explanation {
+  width: 90%;
+  max-width: 600px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 10px;
+  padding: 10px;
+  font-size: 14px;
+  max-height: 180px;
+  overflow-y: auto;
+  display: none;
+  text-align: left;
+}
+
+#stats {
+  font-size: 13px;
+}
+
+</style>
+</head>
+
+<body>
+
+<div id="topBar">
+  <button class="mode-btn" onclick="setMode('mono')">Mono</button>
+  <button class="mode-btn" onclick="setMode('dual')">Dual</button>
+  <button id="nextBtn" onclick="newQuestion()">Next</button>
+</div>
+
+<div id="gameArea">
+
+  <div id="typeDisplay"></div>
+  <div id="buttons"></div>
+
+  <div id="explanation"></div>
+
+  <div id="stats">
+    Streak: <span id="streak">0</span> |
+    Best: <span id="best">0</span> |
+    Lives: <span id="lives">3</span>
+  </div>
+
+</div>
+
+<script>
+
+const types=["Fire","Water","Grass","Electric","Ice","Fighting","Poison","Ground","Flying","Psychic","Bug","Rock","Ghost","Dragon","Dark","Steel","Fairy","Normal"];
+
+let mode="mono";
+let streak=0,best=0,lives=3,attempts=0;
+let correct="";
+let wrongChoices=[];
+
+/* TYPE CHART */
+function getEffect(a,d){
+  const c={
+    Fire:{Grass:2,Ice:2,Bug:2,Steel:2,Fire:0.5,Water:0.5,Rock:0.5,Dragon:0.5},
+    Water:{Fire:2,Rock:2,Ground:2,Water:0.5,Grass:0.5,Dragon:0.5},
+    Grass:{Water:2,Ground:2,Rock:2,Fire:0.5,Grass:0.5,Poison:0.5,Flying:0.5,Bug:0.5,Dragon:0.5,Steel:0.5},
+    Electric:{Water:2,Flying:2,Electric:0.5,Grass:0.5,Dragon:0.5,Ground:0},
+    Ice:{Grass:2,Ground:2,Flying:2,Dragon:2,Fire:0.5,Water:0.5,Ice:0.5,Steel:0.5},
+    Fighting:{Normal:2,Ice:2,Rock:2,Dark:2,Steel:2,Poison:0.5,Flying:0.5,Psychic:0.5,Bug:0.5,Fairy:0.5},
+    Poison:{Grass:2,Fairy:2,Poison:0.5,Ground:0.5,Rock:0.5,Ghost:0.5,Steel:0},
+    Ground:{Fire:2,Electric:2,Poison:2,Rock:2,Steel:2,Grass:0.5,Bug:0.5,Flying:0},
+    Flying:{Grass:2,Fighting:2,Bug:2,Electric:0.5,Rock:0.5,Steel:0.5},
+    Psychic:{Fighting:2,Poison:2,Psychic:0.5,Steel:0.5,Dark:0},
+    Bug:{Grass:2,Psychic:2,Dark:2,Fire:0.5,Fighting:0.5,Poison:0.5,Flying:0.5,Ghost:0.5,Steel:0.5,Fairy:0.5},
+    Rock:{Fire:2,Ice:2,Flying:2,Bug:2,Fighting:0.5,Ground:0.5,Steel:0.5},
+    Ghost:{Psychic:2,Ghost:2,Normal:0,Dark:0.5},
+    Dragon:{Dragon:2,Steel:0.5,Fairy:0},
+    Dark:{Psychic:2,Ghost:2,Fighting:0.5,Dark:0.5,Fairy:0.5},
+    Steel:{Ice:2,Rock:2,Fairy:2,Fire:0.5,Water:0.5,Electric:0.5,Steel:0.5},
+    Fairy:{Fighting:2,Dragon:2,Dark:2,Fire:0.5,Poison:0.5,Steel:0.5},
+    Normal:{Ghost:0,Fighting:0.5}
+  };
+  return c[a]?.[d] ?? 1;
+}
+
+function mult(a,d1,d2){
+  return getEffect(a,d1)*(d2?getEffect(a,d2):1);
+}
+
+/* STATE */
+let d1,d2;
+
+/* QUESTION */
+function newQuestion(){
+  attempts=0;
+  wrongChoices=[];
+  document.getElementById("explanation").style.display="none";
+
+  d1=types[Math.floor(Math.random()*types.length)];
+  d2=mode==="dual"?types[Math.floor(Math.random()*types.length)]:null;
+  if(d2===d1) d2=null;
+
+  document.getElementById("typeDisplay").textContent =
+    mode==="mono"
+      ? `What is strong against ${d1}?`
+      : `What is strong against ${d1}/${d2}?`;
+
+  let good=[],bad=[];
+
+  for(let t of types){
+    let m=mult(t,d1,d2);
+    if(m>=2) good.push(t);
+    else bad.push(t);
+  }
+
+  correct=good[Math.floor(Math.random()*good.length)];
+
+  let opts=[correct];
+  while(opts.length<4){
+    let p=bad[Math.floor(Math.random()*bad.length)];
+    if(!opts.includes(p)) opts.push(p);
+  }
+
+  opts.sort(()=>Math.random()-0.5);
+
+  let b=document.getElementById("buttons");
+  b.innerHTML="";
+
+  opts.forEach(o=>{
+    let btn=document.createElement("button");
+    btn.textContent=o;
+    btn.className=`type-btn ${o}`;
+    btn.onclick=()=>check(o,btn);
+    b.appendChild(btn);
+  });
+}
+
+/* EXPLANATION BUILDER */
+function explain(atk){
+  let m1=getEffect(atk,d1);
+  let m2=d2?getEffect(atk,d2):1;
+  let total=m1*m2;
+
+  let txt=`<b>${atk}</b> explanation:<br>`;
+
+  txt+=`${atk} vs ${d1} → ${describe(m1)}<br>`;
+  if(d2) txt+=`${atk} vs ${d2} → ${describe(m2)}<br>`;
+
+  txt+=`<br>Overall result: ${describe(total)}<br>`;
+
+  return txt;
+}
+
+function describe(x){
+  if(x===0) return "immune";
+  if(x===0.5) return "not very effective";
+  if(x===1) return "neutral";
+  if(x===2) return "super effective";
+  return "very strong";
+}
+
+/* CHECK */
+function check(choice,btn){
+  let exp=document.getElementById("explanation");
+  exp.style.display="block";
+
+  if(choice===correct){
+
+    if(attempts===0){
+      streak++;
+      if(streak>best)best=streak;
+    }
+
+    let msg="✔ Correct!<br><br>";
+
+    msg+=explain(correct);
+    exp.innerHTML=msg;
+
+    update();
+
+  } else {
+
+    attempts++;
+    wrongChoices.push(choice);
+
+    btn.disabled=true;
+    btn.style.opacity=0.3;
+
+    if(attempts<2) return;
+
+    lives--;
+    streak=0;
+
+    let msg="✖ Wrong!<br><br>";
+
+    // SHOW ALL WRONG ATTEMPTS
+    msg+="Your answers:<br><br>";
+
+    for(let w of wrongChoices){
+      msg+=`<b>${w}</b> → ${describe(mult(w,d1,d2))}<br>`;
+    }
+
+    msg+=`<br>Correct answer was <b>${correct}</b><br><br>`;
+    msg+=explain(correct);
+
+    exp.innerHTML=msg;
+
+    update();
+  }
+}
+
+function update(){
+  document.getElementById("streak").textContent=streak;
+  document.getElementById("best").textContent=best;
+  document.getElementById("lives").textContent=lives;
+}
+
+newQuestion();
+
+</script>
+
+</body>
+</html>
