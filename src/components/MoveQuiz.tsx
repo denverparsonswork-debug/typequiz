@@ -21,11 +21,12 @@ const MoveQuiz: React.FC<MoveQuizProps> = ({ onReset }) => {
   const [loading, setLoading] = useState(true);
   const [showHints, setShowHints] = useState(true);
   const [showTypes, setShowTypes] = useState(false);
+  const [isResistMode, setIsResistMode] = useState(false);
 
   const nextQuestion = useCallback(async () => {
     setLoading(true);
     try {
-      const q = await generateMoveQuestion();
+      const q = await generateMoveQuestion(isResistMode ? 'resist' : 'effective');
       setQuestion(q);
       setExplanation(null);
       setSelectedMoves([]);
@@ -34,11 +35,11 @@ const MoveQuiz: React.FC<MoveQuizProps> = ({ onReset }) => {
       console.error(error);
       setLoading(false);
     }
-  }, []);
+  }, [isResistMode]);
 
   useEffect(() => {
     nextQuestion();
-  }, []);
+  }, [nextQuestion]);
 
   const handleGuess = (move: Move) => {
     if (explanation || gameOver || selectedMoves.includes(move) || loading) return;
@@ -48,7 +49,8 @@ const MoveQuiz: React.FC<MoveQuizProps> = ({ onReset }) => {
       question!.pokemon.types, 
       question!.pokemon.activeAbility
     );
-    const isCorrect = effectiveness > 1;
+    
+    const isCorrect = isResistMode ? effectiveness < 1 : effectiveness > 1;
     
     const pokeTypes = question!.pokemon.types.join('/');
     const currentExplanation = getExplanation(
@@ -129,8 +131,8 @@ const MoveQuiz: React.FC<MoveQuizProps> = ({ onReset }) => {
               </span>
             ))}
           </div>
-          <div className="text-[10px] sm:text-xs text-blue-400 font-bold uppercase tracking-widest">
-            MOVE MASTERY
+          <div className="text-[10px] sm:text-xs text-blue-400 font-bold uppercase tracking-widest text-center">
+            MOVE MASTERY: {isResistMode ? 'RESIST' : 'EFFECTIVE'}
           </div>
         </div>
 
@@ -144,7 +146,9 @@ const MoveQuiz: React.FC<MoveQuizProps> = ({ onReset }) => {
         <>
           <div className="mb-8 text-center space-y-4">
             <h2 className="text-lg sm:text-xl text-gray-300">
-              Select a <span className="text-blue-400 font-black">Super Effective</span> move against:
+              Select a <span className={`${isResistMode ? 'text-purple-400' : 'text-blue-400'} font-black uppercase`}>
+                {isResistMode ? 'Resisted (or Immune)' : 'Super Effective'}
+              </span> move against:
             </h2>
             <div className="relative group inline-block">
               <div className="absolute -inset-4 bg-blue-500/20 blur-xl rounded-full opacity-50" />
@@ -257,6 +261,17 @@ const MoveQuiz: React.FC<MoveQuizProps> = ({ onReset }) => {
           />
           <span className="text-gray-400 text-sm group-hover:text-gray-300 transition-colors">
             Show Pokémon types (Beginner Mode)
+          </span>
+        </label>
+        <label className="flex items-center gap-2 cursor-pointer group">
+          <input
+            type="checkbox"
+            checked={isResistMode}
+            onChange={(e) => setIsResistMode(e.target.checked)}
+            className="w-4 h-4 rounded border-gray-700 bg-gray-800 text-yellow-500 focus:ring-yellow-500 focus:ring-offset-gray-900"
+          />
+          <span className="text-gray-400 text-sm group-hover:text-gray-300 transition-colors font-bold uppercase tracking-tight">
+            Resistance Training (Invert Logic)
           </span>
         </label>
       </div>

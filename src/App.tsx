@@ -3,10 +3,11 @@ import Quiz from './components/Quiz';
 import MoveQuiz from './components/MoveQuiz';
 import AbilityDescQuiz from './components/AbilityDescQuiz';
 import PokemonAbilityQuiz from './components/PokemonAbilityQuiz';
+import Resources from './components/Resources';
 import LandingPage from './components/LandingPage';
 import type { Difficulty } from './logic/quiz-engine';
 
-type View = 'landing' | 'type-quiz-menu' | 'type-quiz-game' | 'move-mastery' | 'ability-desc' | 'pokemon-ability';
+type View = 'landing' | 'type-quiz-menu' | 'type-quiz-game' | 'move-mastery' | 'ability-desc' | 'pokemon-ability' | 'resources';
 
 function App() {
   const [view, setView] = useState<View>('landing');
@@ -42,21 +43,26 @@ function App() {
     setDifficulty(null);
   };
 
+  const goToResources = () => {
+    setView('resources');
+    setDifficulty(null);
+  };
+
   return (
     <div className="min-h-screen bg-gray-950 flex flex-col items-center p-4 font-sans w-full overflow-x-hidden text-white">
       {/* Navigation Header */}
       <nav className="w-full max-w-6xl flex justify-between items-center py-6 mb-8 border-b border-gray-900">
         <div 
-          className="text-2xl font-black tracking-tighter cursor-pointer hover:opacity-80 transition-opacity"
+          className="text-2xl font-black tracking-tighter cursor-pointer hover:opacity-80 transition-opacity uppercase italic"
           onClick={resetToLanding}
         >
           PKMN <span className="text-blue-500">LABS</span>
         </div>
         <div className="hidden sm:flex gap-8 text-xs font-bold uppercase tracking-widest text-gray-400">
           <span className="hover:text-white cursor-pointer transition-colors" onClick={resetToLanding}>Home</span>
-          <span className="hover:text-white cursor-pointer transition-colors" onClick={goToTypeMenu}>Types</span>
-          <span className="hover:text-white cursor-pointer transition-colors" onClick={startMoveMastery}>Moves</span>
-          <span className="hover:text-white cursor-pointer transition-colors" onClick={startAbilityDesc}>Abilities</span>
+          <span className="hover:text-white cursor-pointer transition-colors" onClick={goToTypeMenu}>Training</span>
+          <span className="hover:text-white cursor-pointer transition-colors" onClick={goToResources}>Resources</span>
+          <span className="text-gray-700 cursor-not-allowed">Puzzles</span>
         </div>
         <button 
           className="px-5 py-2 bg-gray-900 border border-gray-800 rounded-lg text-xs font-bold uppercase tracking-widest hover:border-gray-700 transition-all"
@@ -75,6 +81,10 @@ function App() {
             onStartAbilityDesc={startAbilityDesc}
             onStartPokemonAbility={startPokemonAbility}
           />
+        )}
+
+        {view === 'resources' && (
+          <Resources />
         )}
 
         {view === 'type-quiz-menu' && (

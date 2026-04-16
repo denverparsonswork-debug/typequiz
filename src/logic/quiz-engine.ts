@@ -132,24 +132,34 @@ export const generateQuestion = (difficulty: Difficulty): Question => {
 
   return { defenderTypes, options, correctAnswer };
 };
-export const generateMoveQuestion = async (): Promise<MoveQuestion> => {
+export const generateMoveQuestion = async (mode: 'effective' | 'resist' = 'super-effective'): Promise<MoveQuestion> => {
   const pokemon = await fetchRandomPokemon();
+  
+  let superEffectiveMoves: Move[];
+  let neutralOrResistedMoves: Move[];
 
-  const superEffectiveMoves = MOVES.filter(m => calculateEffectiveness(m.type, pokemon.types, pokemon.activeAbility) > 1);
-  const neutralOrResistedMoves = MOVES.filter(m => calculateEffectiveness(m.type, pokemon.types, pokemon.activeAbility) <= 1);
-
-  if (superEffectiveMoves.length === 0) return generateMoveQuestion();
-
+  if (mode === 'resist') {
+    // Correct moves are those that the pokemon RESISTS or is IMMUNE to (< 1x)
+    superEffectiveMoves = MOVES.filter(m => calculateEffectiveness(m.type, pokemon.types, pokemon.activeAbility) < 1);
+    // Wrong moves are those that hit for NEUTRAL or better (>= 1x)
+    neutralOrResistedMoves = MOVES.filter(m => calculateEffectiveness(m.type, pokemon.types, pokemon.activeAbility) >= 1);
+  } else {
+    // Default: Correct moves are SUPER EFFECTIVE (> 1x)
+    superEffectiveMoves = MOVES.filter(m => calculateEffectiveness(m.type, pokemon.types, pokemon.activeAbility) > 1);
+    // Wrong moves are NEUTRAL or worse (<= 1x)
+    neutralOrResistedMoves = MOVES.filter(m => calculateEffectiveness(m.type, pokemon.types, pokemon.activeAbility) <= 1);
+  }
+  
+  if (superEffectiveMoves.length === 0) return generateMoveQuestion(mode);
+  
   const correctAnswer = superEffectiveMoves[Math.floor(Math.random() * superEffectiveMoves.length)];
   const correctType = correctAnswer.type;
-
-  // Pick 3 wrong moves with unique types (different from each other and the correct type)
+  
+  // Pick 3 wrong moves with unique types
   const wrongOptions: Move[] = [];
   const usedTypes = new Set<PokemonType>([correctType]);
-
-  // Shuffle wrong moves to get randomness
   const shuffledWrongPool = [...neutralOrResistedMoves].sort(() => 0.5 - Math.random());
-
+  
   for (const move of shuffledWrongPool) {
     if (!usedTypes.has(move.type)) {
       wrongOptions.push(move);
@@ -157,12 +167,11 @@ export const generateMoveQuestion = async (): Promise<MoveQuestion> => {
     }
     if (wrongOptions.length === 3) break;
   }
-
-  // If we couldn't find enough unique wrong types (shouldn't happen with our move pool), retry
-  if (wrongOptions.length < 3) return generateMoveQuestion();
+  
+  if (wrongOptions.length < 3) return generateMoveQuestion(mode);
 
   const options = [correctAnswer, ...wrongOptions].sort(() => 0.5 - Math.random());
-
+  
   return { pokemon, options, correctAnswer };
 };
 export const generateAbilityDescQuestion = (): AbilityDescQuestion => {
