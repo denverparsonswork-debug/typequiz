@@ -53,8 +53,9 @@ const MoveQuiz: React.FC<MoveQuizProps> = ({ onReset }) => {
     const isCorrect = isResistMode ? effectiveness < 1 : effectiveness > 1;
     
     const pokeTypes = question!.pokemon.types.join('/');
-    const currentExplanation = getExplanation(
-      move.type, 
+    const correctMove = question!.correctAnswer;
+    const correctExplanation = getExplanation(
+      correctMove.type, 
       question!.pokemon.types, 
       question!.pokemon.activeAbility
     );
@@ -62,7 +63,7 @@ const MoveQuiz: React.FC<MoveQuizProps> = ({ onReset }) => {
     setSelectedMoves(prev => [...prev, move]);
 
     if (isCorrect) {
-      setExplanation(`Correct! ${showHints ? currentExplanation : ''}`);
+      setExplanation(`Correct! ${showHints ? correctExplanation : ''}`);
       const newStreak = streak + 1;
       setStreak(newStreak);
       if (newStreak > highScore) {
@@ -73,7 +74,7 @@ const MoveQuiz: React.FC<MoveQuizProps> = ({ onReset }) => {
       const newLives = lives - 1;
       setLives(newLives);
       const abilityName = normalizeAbilityName(question!.pokemon.activeAbility);
-      setExplanation(`Wrong. ${move.name} is ${currentExplanation}. ${question!.pokemon.name} is ${pokeTypes} with ${abilityName}.`);
+      setExplanation(`Wrong. The correct answer was ${correctMove.name} (${correctMove.type}): ${correctExplanation} ${question!.pokemon.name} is ${pokeTypes} with ${abilityName}.`);
       setStreak(0);
       if (newLives <= 0) {
         setGameOver(true);
