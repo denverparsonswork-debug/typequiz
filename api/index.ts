@@ -16,11 +16,16 @@ app.use(express.json());
 const connectDB = async () => {
   if (mongoose.connection.readyState >= 1) return;
   
+  if (!process.env.MONGODB_URI) {
+    throw new Error('MONGODB_URI is not defined in environment variables');
+  }
+
   try {
-    await mongoose.connect(process.env.MONGODB_URI!);
+    await mongoose.connect(process.env.MONGODB_URI);
     console.log('Connected to MongoDB Atlas');
   } catch (err) {
     console.error('MongoDB connection error:', err);
+    throw err;
   }
 };
 
@@ -40,8 +45,8 @@ const authenticateToken = (req: any, res: any, next: any) => {
 
 // Auth Routes
 app.post('/api/auth/register', async (req, res) => {
-  await connectDB();
   try {
+    await connectDB();
     const { username, password } = req.body;
     const existingUser = await User.findOne({ username });
     if (existingUser) return res.status(400).json({ message: 'Username exists' });
@@ -52,14 +57,14 @@ app.post('/api/auth/register', async (req, res) => {
 
     const token = jwt.sign({ userId: user._id, username: user.username }, JWT_SECRET);
     res.status(201).json({ token, username: user.username });
-  } catch (err) {
-    res.status(500).json({ message: 'Error' });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || 'Error during registration' });
   }
 });
 
 app.post('/api/auth/login', async (req, res) => {
-  await connectDB();
   try {
+    await connectDB();
     const { username, password } = req.body;
     const user = await User.findOne({ username });
     if (!user) return res.status(400).json({ message: 'Invalid credentials' });
@@ -69,30 +74,30 @@ app.post('/api/auth/login', async (req, res) => {
 
     const token = jwt.sign({ userId: user._id, username: user.username }, JWT_SECRET);
     res.json({ token, username: user.username });
-  } catch (err) {
-    res.status(500).json({ message: 'Error' });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || 'Error during login' });
   }
 });
 
 // Score Routes
 app.post('/api/scores', authenticateToken, async (req: any, res) => {
-  await connectDB();
   try {
+    await connectDB();
     const { gameType, mode, gen, streak } = req.body;
     const { userId, username } = req.user;
 
     const score = new Score({ userId, username, gameType, mode, gen, streak });
     await score.save();
     res.status(201).json(score);
-  } catch (err) {
-    res.status(500).json({ message: 'Error' });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || 'Error saving score' });
   }
 });
 
 // Leaderboard Route
 app.get('/api/leaderboard', async (req, res) => {
-  await connectDB();
   try {
+    await connectDB();
     const { gen } = req.query;
     const scores = await Score.aggregate([
       { $match: { gen: Number(gen) } },
@@ -111,8 +116,8 @@ app.get('/api/leaderboard', async (req, res) => {
       }
     ]);
     res.json(scores);
-  } catch (err) {
-    res.status(500).json({ message: 'Error' });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || 'Error fetching leaderboard' });
   }
 });
 
