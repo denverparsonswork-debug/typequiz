@@ -30,16 +30,34 @@ const TYPE_MAP: Record<string, PokemonType> = {
   fairy: PokemonType.Fairy,
 };
 
-export const fetchRandomPokemon = async (): Promise<PokemonData> => {
-  const randomId = Math.floor(Math.random() * 1010) + 1;
+const GEN_ID_RANGES: Record<number, number> = {
+  1: 151,
+  2: 251,
+  3: 386,
+  4: 493,
+  5: 649,
+  6: 721,
+  7: 809,
+  8: 905,
+  9: 1025
+};
+
+export const fetchRandomPokemon = async (gen: number = 9): Promise<PokemonData> => {
+  const maxId = GEN_ID_RANGES[gen] || 1025;
+  const randomId = Math.floor(Math.random() * maxId) + 1;
   const response = await fetch(`https://pokeapi.co/api/v2/pokemon/${randomId}`);
   if (!response.ok) throw new Error('Failed to fetch Pokemon');
   
   const data = await response.json();
   
-  // Normalized ability names
-  const allAbilities = data.abilities.map((a: any) => normalizeAbilityName(a.ability.name));
-  const activeAbility = data.abilities[Math.floor(Math.random() * data.abilities.length)].ability.name;
+  // Normalized ability names (Abilities didn't exist in Gen 1-2)
+  const allAbilities = gen > 2 
+    ? data.abilities.map((a: any) => normalizeAbilityName(a.ability.name))
+    : ['No Ability'];
+    
+  const activeAbility = gen > 2
+    ? data.abilities[Math.floor(Math.random() * data.abilities.length)].ability.name
+    : 'none';
   
   return {
     name: data.name.toUpperCase(),

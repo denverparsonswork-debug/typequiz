@@ -7,12 +7,13 @@ import TypeBadge from './TypeBadge';
 interface QuizProps {
   difficulty: Difficulty;
   onReset: () => void;
+  gen: number;
 }
 
-const Quiz: React.FC<QuizProps> = ({ difficulty, onReset }) => {
+const Quiz: React.FC<QuizProps> = ({ difficulty, onReset, gen }) => {
   const [question, setQuestion] = useState<Question | null>(null);
   const [streak, setStreak] = useState(0);
-  const highScoreKey = `highScore_${difficulty}`;
+  const highScoreKey = `highScore_${difficulty}_gen${gen}`;
   const [highScore, setHighScore] = useState(0);
   const [lives, setLives] = useState(difficulty === 'hard' ? 1 : 3);
   const [attempts, setAttempts] = useState(0);
@@ -23,7 +24,7 @@ const Quiz: React.FC<QuizProps> = ({ difficulty, onReset }) => {
   const [showHints, setShowHints] = useState(true);
 
   const nextQuestion = useCallback(() => {
-    setQuestion(generateQuestion(difficulty));
+    setQuestion(generateQuestion(difficulty, gen));
     setAttempts(0);
     setExplanation(null);
     setSelectedTypes([]);
@@ -31,7 +32,7 @@ const Quiz: React.FC<QuizProps> = ({ difficulty, onReset }) => {
       const time = Math.max(5, 15 - streak * 0.5);
       setTimeLeft(time);
     }
-  }, [difficulty, streak]);
+  }, [difficulty, streak, gen]);
 
   useEffect(() => {
     const saved = Number(localStorage.getItem(highScoreKey) || '0');
@@ -41,7 +42,7 @@ const Quiz: React.FC<QuizProps> = ({ difficulty, onReset }) => {
     setGameOver(false);
     setExplanation(null);
     nextQuestion();
-  }, [difficulty, highScoreKey]);
+  }, [difficulty, highScoreKey, gen]);
 
   useEffect(() => {
     if (difficulty === 'hard' && timeLeft !== null && timeLeft > 0 && !explanation && !gameOver) {
@@ -71,7 +72,7 @@ const Quiz: React.FC<QuizProps> = ({ difficulty, onReset }) => {
   const handleGuess = (type: PokemonType) => {
     if (explanation || gameOver || selectedTypes.includes(type)) return;
 
-    const effectiveness = calculateEffectiveness(type, question!.defenderTypes);
+    const effectiveness = calculateEffectiveness(type, question!.defenderTypes, gen);
     const isCorrect = effectiveness > 1;
     
     if (difficulty === 'hard' && !showHints) {
@@ -85,13 +86,12 @@ const Quiz: React.FC<QuizProps> = ({ difficulty, onReset }) => {
         nextQuestion();
       } else {
         setLives(0);
-        setStreak(0);
         setGameOver(true);
       }
       return;
     }
 
-    const currentExplanation = getExplanation(type, question!.defenderTypes);
+    const currentExplanation = getExplanation(type, question!.defenderTypes, gen);
     setSelectedTypes(prev => [...prev, type]);
 
     if (isCorrect) {
@@ -112,7 +112,6 @@ const Quiz: React.FC<QuizProps> = ({ difficulty, onReset }) => {
         const newLives = lives - 1;
         setLives(newLives);
         setExplanation(`Wrong. ${showHints ? currentExplanation : ''} The correct answer was ${question!.correctAnswer}.`);
-        setStreak(0);
         if (newLives <= 0) {
           setGameOver(true);
         }
@@ -160,9 +159,13 @@ const Quiz: React.FC<QuizProps> = ({ difficulty, onReset }) => {
         <div className="flex flex-col items-center flex-1">
           <div className="flex gap-1 sm:gap-2 mb-1">
             {[...Array(difficulty === 'hard' ? 1 : 3)].map((_, i) => (
-              <span key={i} className={`text-xl sm:text-2xl ${i < lives ? 'text-red-500' : 'text-gray-600'}`}>
-                ❤️
-              </span>
+              <svg 
+                key={i} 
+                className={`w-5 h-5 sm:w-8 sm:h-8 ${i < lives ? 'fill-red-500' : 'fill-gray-800'}`} 
+                viewBox="0 0 24 24"
+              >
+                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+              </svg>
             ))}
           </div>
           {difficulty === 'hard' && timeLeft !== null && (

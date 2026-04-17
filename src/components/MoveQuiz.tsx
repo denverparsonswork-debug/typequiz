@@ -7,12 +7,13 @@ import TypeBadge from './TypeBadge';
 
 interface MoveQuizProps {
   onReset: () => void;
+  gen: number;
 }
 
-const MoveQuiz: React.FC<MoveQuizProps> = ({ onReset }) => {
+const MoveQuiz: React.FC<MoveQuizProps> = ({ onReset, gen }) => {
   const [question, setQuestion] = useState<MoveQuestion | null>(null);
   const [streak, setStreak] = useState(0);
-  const highScoreKey = 'highScore_move_mastery';
+  const highScoreKey = `highScore_move_mastery_gen${gen}`;
   const [highScore, setHighScore] = useState(Number(localStorage.getItem(highScoreKey) || '0'));
   const [lives, setLives] = useState(3);
   const [explanation, setExplanation] = useState<string | null>(null);
@@ -26,7 +27,7 @@ const MoveQuiz: React.FC<MoveQuizProps> = ({ onReset }) => {
   const nextQuestion = useCallback(async () => {
     setLoading(true);
     try {
-      const q = await generateMoveQuestion(isResistMode ? 'resist' : 'effective');
+      const q = await generateMoveQuestion(gen, isResistMode ? 'resist' : 'effective');
       setQuestion(q);
       setExplanation(null);
       setSelectedMoves([]);
@@ -35,7 +36,7 @@ const MoveQuiz: React.FC<MoveQuizProps> = ({ onReset }) => {
       console.error(error);
       setLoading(false);
     }
-  }, [isResistMode]);
+  }, [isResistMode, gen]);
 
   useEffect(() => {
     nextQuestion();
@@ -47,6 +48,7 @@ const MoveQuiz: React.FC<MoveQuizProps> = ({ onReset }) => {
     const effectiveness = calculateEffectiveness(
       move.type, 
       question!.pokemon.types, 
+      gen,
       question!.pokemon.activeAbility
     );
     
@@ -57,6 +59,7 @@ const MoveQuiz: React.FC<MoveQuizProps> = ({ onReset }) => {
     const correctExplanation = getExplanation(
       correctMove.type, 
       question!.pokemon.types, 
+      gen,
       question!.pokemon.activeAbility
     );
     
@@ -127,9 +130,13 @@ const MoveQuiz: React.FC<MoveQuizProps> = ({ onReset }) => {
         <div className="flex flex-col items-center flex-1">
           <div className="flex gap-1 sm:gap-2 mb-1">
             {[...Array(3)].map((_, i) => (
-              <span key={i} className={`text-xl sm:text-2xl ${i < lives ? 'text-red-500' : 'text-gray-600'}`}>
-                ❤️
-              </span>
+              <svg 
+                key={i} 
+                className={`w-5 h-5 sm:w-8 sm:h-8 ${i < lives ? 'fill-red-500' : 'fill-gray-800'}`} 
+                viewBox="0 0 24 24"
+              >
+                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+              </svg>
             ))}
           </div>
           <div className="text-[10px] sm:text-xs text-blue-400 font-bold uppercase tracking-widest text-center">

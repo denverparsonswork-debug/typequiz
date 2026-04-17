@@ -1,15 +1,17 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { generatePokemonAbilityQuestion } from '../logic/quiz-engine';
 import type { PokemonAbilityQuestion } from '../logic/quiz-engine';
+import { normalizeAbilityName } from '../logic/ability-engine';
 
 interface PokemonAbilityQuizProps {
   onReset: () => void;
+  gen: number;
 }
 
-const PokemonAbilityQuiz: React.FC<PokemonAbilityQuizProps> = ({ onReset }) => {
+const PokemonAbilityQuiz: React.FC<PokemonAbilityQuizProps> = ({ onReset, gen }) => {
   const [question, setQuestion] = useState<PokemonAbilityQuestion | null>(null);
   const [streak, setStreak] = useState(0);
-  const highScoreKey = 'highScore_pokemon_ability';
+  const highScoreKey = `highScore_pokemon_ability_gen${gen}`;
   const [highScore, setHighScore] = useState(Number(localStorage.getItem(highScoreKey) || '0'));
   const [lives, setLives] = useState(3);
   const [explanation, setExplanation] = useState<string | null>(null);
@@ -20,7 +22,7 @@ const PokemonAbilityQuiz: React.FC<PokemonAbilityQuizProps> = ({ onReset }) => {
   const nextQuestion = useCallback(async () => {
     setLoading(true);
     try {
-      const q = await generatePokemonAbilityQuestion();
+      const q = await generatePokemonAbilityQuestion(gen);
       setQuestion(q);
       setExplanation(null);
       setSelectedOptions([]);
@@ -29,11 +31,11 @@ const PokemonAbilityQuiz: React.FC<PokemonAbilityQuizProps> = ({ onReset }) => {
       console.error(error);
       setLoading(false);
     }
-  }, []);
+  }, [gen]);
 
   useEffect(() => {
-    nextQuestion();
-  }, []);
+    if (gen > 2) nextQuestion();
+  }, [nextQuestion, gen]);
 
   const handleGuess = (option: string) => {
     if (explanation || gameOver || selectedOptions.includes(option) || loading) return;
@@ -42,7 +44,7 @@ const PokemonAbilityQuiz: React.FC<PokemonAbilityQuizProps> = ({ onReset }) => {
     setSelectedOptions(prev => [...prev, option]);
 
     if (isCorrect) {
-      setExplanation(`Correct! ${question!.pokemon.name} can have ${option}.`);
+      setExplanation(`Correct! ${question!.pokemon.name} can have the ability ${normalizeAbilityName(option)}.`);
       const newStreak = streak + 1;
       setStreak(newStreak);
       if (newStreak > highScore) {
@@ -52,7 +54,7 @@ const PokemonAbilityQuiz: React.FC<PokemonAbilityQuizProps> = ({ onReset }) => {
     } else {
       const newLives = lives - 1;
       setLives(newLives);
-      setExplanation(`Wrong. ${question!.pokemon.name} cannot have ${option}. Legal abilities: ${question!.pokemon.allAbilities.join(', ')}.`);
+      setExplanation(`Wrong. The correct answer was ${normalizeAbilityName(question!.correctAnswer)}. ${question!.pokemon.name}'s potential abilities are: ${question!.pokemon.allAbilities.map(a => normalizeAbilityName(a)).join(', ')}.`);
       setStreak(0);
       if (newLives <= 0) {
         setGameOver(true);
@@ -83,6 +85,18 @@ const PokemonAbilityQuiz: React.FC<PokemonAbilityQuizProps> = ({ onReset }) => {
     nextQuestion();
   };
 
+  if (gen <= 2) {
+    return (
+      <div className="w-full max-w-2xl mx-auto p-12 bg-gray-900 text-white rounded-xl shadow-2xl border border-gray-700 text-center space-y-6">
+        <h2 className="text-3xl font-black text-red-500 uppercase italic">Incompatible Gen</h2>
+        <p className="text-gray-400 text-lg">Abilities were introduced in <span className="text-blue-400 font-bold">Generation 3</span>. Please select Gen 3 or later to play this mode.</p>
+        <button onClick={onReset} className="px-8 py-3 bg-gray-700 text-white rounded-full font-bold hover:bg-gray-600 transition-transform active:scale-95 shadow-lg uppercase tracking-widest text-sm">
+          Return to Menu
+        </button>
+      </div>
+    );
+  }
+
   if (loading && !question) {
     return (
       <div className="flex flex-col items-center justify-center p-20 space-y-4">
@@ -105,9 +119,13 @@ const PokemonAbilityQuiz: React.FC<PokemonAbilityQuizProps> = ({ onReset }) => {
         <div className="flex flex-col items-center flex-1 text-center">
           <div className="flex gap-1 sm:gap-2 mb-1">
             {[...Array(3)].map((_, i) => (
-              <span key={i} className={`text-xl sm:text-2xl ${i < lives ? 'text-red-500' : 'text-gray-600'}`}>
-                ❤️
-              </span>
+              <svg 
+                key={i} 
+                className={`w-5 h-5 sm:w-8 sm:h-8 ${i < lives ? 'fill-red-500' : 'fill-gray-800'}`} 
+                viewBox="0 0 24 24"
+              >
+                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+              </svg>
             ))}
           </div>
           <div className="text-[10px] sm:text-xs text-red-400 font-bold uppercase tracking-widest">

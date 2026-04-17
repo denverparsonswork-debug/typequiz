@@ -6,21 +6,24 @@ interface LandingPageProps {
   onStartMoveQuiz: () => void;
   onStartAbilityDesc: () => void;
   onStartPokemonAbility: () => void;
+  activeGen: number;
 }
 
 const LandingPage: React.FC<LandingPageProps> = ({ 
   onStartQuiz, 
   onStartMoveQuiz, 
   onStartAbilityDesc, 
-  onStartPokemonAbility 
+  onStartPokemonAbility,
+  activeGen
 }) => {
   return (
     <div className="flex flex-col items-center w-full max-w-6xl mx-auto px-4 py-8 sm:py-16 space-y-20">
       {/* Hero Section */}
       <section className="flex flex-col md:flex-row items-center justify-between gap-12 w-full">
         <div className="flex-1 text-center md:text-left space-y-6">
-          <div className="inline-block px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-bold tracking-widest uppercase mb-4">
-            Beta Training Program
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-bold tracking-widest uppercase mb-4">
+            <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+            Active Training: Gen {activeGen} Mode
           </div>
           <h1 className="text-5xl sm:text-7xl font-black text-white tracking-tighter leading-none">
             MASTER <br />

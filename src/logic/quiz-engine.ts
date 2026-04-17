@@ -1,4 +1,4 @@
-import { PokemonType, TYPE_CHART } from '../data/type-chart';
+import { PokemonType, getTypeChart, getTypesForGen } from '../data/type-chart';
 import { MOVES } from '../data/moves';
 import type { Move } from '../data/moves';
 import { fetchRandomPokemon } from './pokemon-api';
@@ -36,17 +36,19 @@ export interface PokemonAbilityQuestion {
 export const calculateEffectiveness = (
   attacker: PokemonType, 
   defenderTypes: PokemonType[], 
+  gen: number = 9,
   ability?: string
 ): number => {
   let multiplier = 1;
+  const chart = getTypeChart(gen);
   
   // Base type effectiveness
   for (const defender of defenderTypes) {
-    multiplier *= (TYPE_CHART[attacker][defender] ?? 1);
+    multiplier *= (chart[attacker]?.[defender] ?? 1);
   }
 
   // Ability modifiers
-  if (ability) {
+  if (ability && ability !== 'none') {
     const effects = ABILITY_MODIFIERS[ability.toLowerCase()];
     if (effects) {
       for (const effect of effects) {
@@ -56,11 +58,9 @@ export const calculateEffectiveness = (
       }
     }
 
-    // Wonder Guard special handling: Only super effective (> 1x) hits
+    // Wonder Guard special handling
     if (ability.toLowerCase() === 'wonder-guard') {
-      if (multiplier <= 1) {
-        multiplier = 0;
-      }
+      if (multiplier <= 1) multiplier = 0;
     }
   }
 
@@ -70,15 +70,17 @@ export const calculateEffectiveness = (
 export const getExplanation = (
   attacker: PokemonType, 
   defenderTypes: PokemonType[], 
+  gen: number = 9,
   ability?: string
 ): string => {
+  const chart = getTypeChart(gen);
   const multipliers = defenderTypes.map(def => ({
     type: def,
-    value: TYPE_CHART[attacker][def] ?? 1
+    value: chart[attacker]?.[def] ?? 1
   }));
 
-  const baseTotal = defenderTypes.reduce((acc, def) => acc * (TYPE_CHART[attacker][def] ?? 1), 1);
-  let finalTotal = calculateEffectiveness(attacker, defenderTypes, ability);
+  const baseTotal = defenderTypes.reduce((acc, def) => acc * (chart[attacker]?.[def] ?? 1), 1);
+  let finalTotal = calculateEffectiveness(attacker, defenderTypes, gen, ability);
   
   const parts = multipliers.map(m => `${m.value}x vs ${m.type}`);
   let resultText = '';
@@ -88,77 +90,78 @@ export const getExplanation = (
   else resultText = `Not Very Effective (${finalTotal}x).`;
 
   let abilityNote = '';
-  if (ability && baseTotal !== finalTotal) {
+  if (ability && ability !== 'none' && baseTotal !== finalTotal) {
     abilityNote = ` (Adjusted by ${normalizeAbilityName(ability)})`;
   }
 
   return `${attacker} is ${parts.join(' and ')}. Final: ${resultText}${abilityNote}`;
 };
 
-export const generateQuestion = (difficulty: Difficulty): Question => {
-  const allTypes = Object.values(PokemonType) as PokemonType[];
+export const generateQuestion = (difficulty: Difficulty, gen: number = 9): Question => {
+  const allowedTypes = getTypesForGen(gen);
   
   let defenderTypes: PokemonType[] = [];
   if (difficulty === 'easy') {
-    defenderTypes = [allTypes[Math.floor(Math.random() * allTypes.length)]];
+    defenderTypes = [allowedTypes[Math.floor(Math.random() * allowedTypes.length)]];
   } else if (difficulty === 'dual') {
-    const t1 = allTypes[Math.floor(Math.random() * allTypes.length)];
-    let t2 = allTypes[Math.floor(Math.random() * allTypes.length)];
+    const t1 = allowedTypes[Math.floor(Math.random() * allowedTypes.length)];
+    let t2 = allowedTypes[Math.floor(Math.random() * allowedTypes.length)];
     while (t1 === t2) {
-      t2 = allTypes[Math.floor(Math.random() * allTypes.length)];
+      t2 = allowedTypes[Math.floor(Math.random() * allowedTypes.length)];
     }
     defenderTypes = [t1, t2];
   } else if (difficulty === 'hard') {
     const isDual = Math.random() < 0.7;
     if (isDual) {
-      const t1 = allTypes[Math.floor(Math.random() * allTypes.length)];
-      let t2 = allTypes[Math.floor(Math.random() * allTypes.length)];
-      while (t1 === t2) {
-        t2 = allTypes[Math.floor(Math.random() * allTypes.length)];
-      }
+      const t1 = allowedTypes[Math.floor(Math.random() * allowedTypes.length)];
+      let t2 = allowedTypes[Math.floor(Math.random() * allowedTypes.length)];
+      while (t1 === t2) t2 = allowedTypes[Math.floor(Math.random() * allowedTypes.length)];
       defenderTypes = [t1, t2];
     } else {
-      defenderTypes = [allTypes[Math.floor(Math.random() * allTypes.length)]];
+      defenderTypes = [allowedTypes[Math.floor(Math.random() * allowedTypes.length)]];
     }
   }
 
-  const superEffectiveTypes = allTypes.filter(t => calculateEffectiveness(t, defenderTypes) > 1);
-  if (superEffectiveTypes.length === 0) return generateQuestion(difficulty);
+  const superEffectiveTypes = allowedTypes.filter(t => calculateEffectiveness(t, defenderTypes, gen) > 1);
+  if (superEffectiveTypes.length === 0) return generateQuestion(difficulty, gen);
 
   const correctAnswer = superEffectiveTypes[Math.floor(Math.random() * superEffectiveTypes.length)];
-  const otherTypes = allTypes.filter(t => calculateEffectiveness(t, defenderTypes) <= 1);
+  const otherTypes = allowedTypes.filter(t => calculateEffectiveness(t, defenderTypes, gen) <= 1);
   const shuffledWrong = otherTypes.sort(() => 0.5 - Math.random());
   const options = [correctAnswer, ...shuffledWrong.slice(0, 3)].sort(() => 0.5 - Math.random());
 
   return { defenderTypes, options, correctAnswer };
 };
-export const generateMoveQuestion = async (mode: 'effective' | 'resist' = 'super-effective'): Promise<MoveQuestion> => {
-  const pokemon = await fetchRandomPokemon();
+
+export const generateMoveQuestion = async (
+  gen: number = 9,
+  mode: 'effective' | 'resist' = 'effective'
+): Promise<MoveQuestion> => {
+  const pokemon = await fetchRandomPokemon(gen);
+  const allowedTypes = getTypesForGen(gen);
   
-  let superEffectiveMoves: Move[];
-  let neutralOrResistedMoves: Move[];
+  // Filter moves to only those existing in the current generation's type set
+  const allowedMoves = MOVES.filter(m => allowedTypes.includes(m.type));
+
+  let correctMoves: Move[];
+  let wrongMoves: Move[];
 
   if (mode === 'resist') {
-    // Correct moves are those that the pokemon RESISTS or is IMMUNE to (< 1x)
-    superEffectiveMoves = MOVES.filter(m => calculateEffectiveness(m.type, pokemon.types, pokemon.activeAbility) < 1);
-    // Wrong moves are those that hit for NEUTRAL or better (>= 1x)
-    neutralOrResistedMoves = MOVES.filter(m => calculateEffectiveness(m.type, pokemon.types, pokemon.activeAbility) >= 1);
+    correctMoves = allowedMoves.filter(m => calculateEffectiveness(m.type, pokemon.types, gen, pokemon.activeAbility) < 1);
+    wrongMoves = allowedMoves.filter(m => calculateEffectiveness(m.type, pokemon.types, gen, pokemon.activeAbility) >= 1);
   } else {
-    // Default: Correct moves are SUPER EFFECTIVE (> 1x)
-    superEffectiveMoves = MOVES.filter(m => calculateEffectiveness(m.type, pokemon.types, pokemon.activeAbility) > 1);
-    // Wrong moves are NEUTRAL or worse (<= 1x)
-    neutralOrResistedMoves = MOVES.filter(m => calculateEffectiveness(m.type, pokemon.types, pokemon.activeAbility) <= 1);
+    correctMoves = allowedMoves.filter(m => calculateEffectiveness(m.type, pokemon.types, gen, pokemon.activeAbility) > 1);
+    wrongMoves = allowedMoves.filter(m => calculateEffectiveness(m.type, pokemon.types, gen, pokemon.activeAbility) <= 1);
   }
   
-  if (superEffectiveMoves.length === 0) return generateMoveQuestion(mode);
+  if (correctMoves.length === 0) return generateMoveQuestion(gen, mode);
   
-  const correctAnswer = superEffectiveMoves[Math.floor(Math.random() * superEffectiveMoves.length)];
+  const correctAnswer = correctMoves[Math.floor(Math.random() * correctMoves.length)];
   const correctType = correctAnswer.type;
   
-  // Pick 3 wrong moves with unique types
   const wrongOptions: Move[] = [];
   const usedTypes = new Set<PokemonType>([correctType]);
-  const shuffledWrongPool = [...neutralOrResistedMoves].sort(() => 0.5 - Math.random());
+  const shuffledWrongPool = [...wrongMoves].sort(() => 0.5 - Math.random());
   
   for (const move of shuffledWrongPool) {
     if (!usedTypes.has(move.type)) {
@@ -168,41 +171,31 @@ export const generateMoveQuestion = async (mode: 'effective' | 'resist' = 'super
     if (wrongOptions.length === 3) break;
   }
   
-  if (wrongOptions.length < 3) return generateMoveQuestion(mode);
+  if (wrongOptions.length < 3) return generateMoveQuestion(gen, mode);
 
   const options = [correctAnswer, ...wrongOptions].sort(() => 0.5 - Math.random());
   
   return { pokemon, options, correctAnswer };
 };
+
 export const generateAbilityDescQuestion = (): AbilityDescQuestion => {
   const correctAbility = COMPETITIVE_ABILITIES[Math.floor(Math.random() * COMPETITIVE_ABILITIES.length)];
   const otherAbilities = COMPETITIVE_ABILITIES.filter(a => a.name !== correctAbility.name);
-  
   const shuffledWrong = otherAbilities.sort(() => 0.5 - Math.random());
   const options = [correctAbility.name, ...shuffledWrong.slice(0, 3).map(a => a.name)].sort(() => 0.5 - Math.random());
   
-  return {
-    ability: correctAbility,
-    options,
-    correctAnswer: correctAbility.name
-  };
+  return { ability: correctAbility, options, correctAnswer: correctAbility.name };
 };
 
-export const generatePokemonAbilityQuestion = async (): Promise<PokemonAbilityQuestion> => {
-  const pokemon = await fetchRandomPokemon();
+export const generatePokemonAbilityQuestion = async (gen: number = 9): Promise<PokemonAbilityQuestion> => {
+  // Abilities don't exist in Gen 1-2, so force higher gen or handled by component
+  const effectiveGen = gen < 3 ? 9 : gen;
+  const pokemon = await fetchRandomPokemon(effectiveGen);
   
-  // Choose one of the pokemon's legal abilities
   const correctAnswer = pokemon.allAbilities[Math.floor(Math.random() * pokemon.allAbilities.length)];
-  
-  // Pick 3 abilities the pokemon DOES NOT have
   const wrongAbilities = COMPETITIVE_ABILITIES.filter(a => !pokemon.allAbilities.includes(a.name));
-  
   const shuffledWrong = wrongAbilities.sort(() => 0.5 - Math.random());
   const options = [correctAnswer, ...shuffledWrong.slice(0, 3).map(a => a.name)].sort(() => 0.5 - Math.random());
   
-  return {
-    pokemon,
-    options,
-    correctAnswer
-  };
+  return { pokemon, options, correctAnswer };
 };

@@ -12,6 +12,7 @@ type View = 'landing' | 'type-quiz-menu' | 'type-quiz-game' | 'move-mastery' | '
 function App() {
   const [view, setView] = useState<View>('landing');
   const [difficulty, setDifficulty] = useState<Difficulty | null>(null);
+  const [activeGen, setActiveGen] = useState<number>(9);
 
   const startTypeQuiz = (diff: Difficulty) => {
     setDifficulty(diff);
@@ -58,14 +59,29 @@ function App() {
         >
           PKMN <span className="text-blue-500">LABS</span>
         </div>
-        <div className="hidden sm:flex gap-8 text-xs font-bold uppercase tracking-widest text-gray-400">
+        
+        {/* Gen Selector */}
+        <div className="flex items-center gap-3 bg-gray-900/50 border border-gray-800 px-4 py-2 rounded-xl">
+          <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest hidden sm:inline">Active Gen</span>
+          <select 
+            value={activeGen}
+            onChange={(e) => setActiveGen(Number(e.target.value))}
+            className="bg-transparent text-blue-400 font-bold text-sm focus:outline-none cursor-pointer"
+          >
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(g => (
+              <option key={g} value={g} className="bg-gray-900 text-white">Gen {g}</option>
+            ))}
+          </select>
+        </div>
+
+        <div className="hidden lg:flex gap-8 text-xs font-bold uppercase tracking-widest text-gray-400">
           <span className="hover:text-white cursor-pointer transition-colors" onClick={resetToLanding}>Home</span>
           <span className="hover:text-white cursor-pointer transition-colors" onClick={goToTypeMenu}>Training</span>
           <span className="hover:text-white cursor-pointer transition-colors" onClick={goToResources}>Resources</span>
-          <span className="text-gray-700 cursor-not-allowed">Puzzles</span>
         </div>
+
         <button 
-          className="px-5 py-2 bg-gray-900 border border-gray-800 rounded-lg text-xs font-bold uppercase tracking-widest hover:border-gray-700 transition-all"
+          className="px-5 py-2 bg-gray-900 border border-gray-800 rounded-lg text-xs font-bold uppercase tracking-widest hover:border-gray-700 transition-all sm:inline-block hidden"
           onClick={goToTypeMenu}
         >
           Train Now
@@ -80,11 +96,12 @@ function App() {
             onStartMoveQuiz={startMoveMastery}
             onStartAbilityDesc={startAbilityDesc}
             onStartPokemonAbility={startPokemonAbility}
+            activeGen={activeGen}
           />
         )}
 
         {view === 'resources' && (
-          <Resources />
+          <Resources gen={activeGen} />
         )}
 
         {view === 'type-quiz-menu' && (
@@ -93,7 +110,7 @@ function App() {
               <h1 className="text-4xl sm:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-purple-500 to-red-500 tracking-tighter break-words uppercase">
                 Type Matchup Master
               </h1>
-              <p className="text-gray-400 text-lg">Select your training intensity</p>
+              <p className="text-gray-400 text-lg uppercase tracking-widest font-bold">GEN {activeGen} MODE</p>
             </header>
 
             <div className="flex flex-col gap-4 w-full">
@@ -142,13 +159,13 @@ function App() {
 
         {view === 'type-quiz-game' && difficulty && (
           <div className="w-full max-w-2xl animate-in slide-in-from-top-8 duration-500">
-            <Quiz difficulty={difficulty} onReset={goToTypeMenu} />
+            <Quiz difficulty={difficulty} onReset={goToTypeMenu} gen={activeGen} />
           </div>
         )}
 
         {view === 'move-mastery' && (
           <div className="w-full max-w-2xl animate-in slide-in-from-top-8 duration-500">
-            <MoveQuiz onReset={resetToLanding} />
+            <MoveQuiz onReset={resetToLanding} gen={activeGen} />
           </div>
         )}
 
@@ -160,7 +177,7 @@ function App() {
 
         {view === 'pokemon-ability' && (
           <div className="w-full max-w-2xl animate-in slide-in-from-top-8 duration-500">
-            <PokemonAbilityQuiz onReset={resetToLanding} />
+            <PokemonAbilityQuiz onReset={resetToLanding} gen={activeGen} />
           </div>
         )}
       </main>
