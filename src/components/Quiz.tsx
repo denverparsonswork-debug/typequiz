@@ -57,7 +57,7 @@ const Quiz: React.FC<QuizProps> = ({ difficulty, onReset, gen }) => {
     
     setIsSaving(true);
     try {
-      const response = await fetch('http://localhost:5000/api/scores', {
+      const response = await fetch('/api/scores', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',

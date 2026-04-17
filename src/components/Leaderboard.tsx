@@ -40,7 +40,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ gen }) => {
     const fetchLeaderboard = async () => {
       setLoading(true);
       try {
-        const response = await fetch(`http://localhost:5000/api/leaderboard?gen=${gen}`);
+        const response = await fetch(`/api/leaderboard?gen=${gen}`);
         const result = await response.json();
         setData(result);
       } catch (err) {
