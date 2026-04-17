@@ -1,25 +1,28 @@
 import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import User from './models/User';
 import Score from './models/Score';
 
-dotenv.config();
-
 const app = express();
-const PORT = process.env.PORT || 5000;
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret';
 
 app.use(cors());
 app.use(express.json());
 
-// Connect to MongoDB
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/pokemon_type')
-  .then(() => console.log('Connected to MongoDB'))
-  .catch(err => console.error('MongoDB connection error:', err));
+// MongoDB Connection Logic for Serverless
+const connectDB = async () => {
+  if (mongoose.connection.readyState >= 1) return;
+  
+  try {
+    await mongoose.connect(process.env.MONGODB_URI!);
+    console.log('Connected to MongoDB Atlas');
+  } catch (err) {
+    console.error('MongoDB connection error:', err);
+  }
+};
 
 // Middleware to verify JWT
 const authenticateToken = (req: any, res: any, next: any) => {
@@ -37,80 +40,60 @@ const authenticateToken = (req: any, res: any, next: any) => {
 
 // Auth Routes
 app.post('/api/auth/register', async (req, res) => {
+  await connectDB();
   try {
     const { username, password } = req.body;
-    
-    // Check if user exists
     const existingUser = await User.findOne({ username });
-    if (existingUser) {
-      return res.status(400).json({ message: 'Username already exists' });
-    }
+    if (existingUser) return res.status(400).json({ message: 'Username exists' });
 
-    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
-    
-    // Create user
     const user = new User({ username, password: hashedPassword });
     await user.save();
 
-    // Generate token
     const token = jwt.sign({ userId: user._id, username: user.username }, JWT_SECRET);
     res.status(201).json({ token, username: user.username });
   } catch (err) {
-    res.status(500).json({ message: 'Error creating user' });
+    res.status(500).json({ message: 'Error' });
   }
 });
 
 app.post('/api/auth/login', async (req, res) => {
+  await connectDB();
   try {
     const { username, password } = req.body;
-    
     const user = await User.findOne({ username });
-    if (!user) {
-      return res.status(400).json({ message: 'Invalid username or password' });
-    }
+    if (!user) return res.status(400).json({ message: 'Invalid credentials' });
 
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res.status(400).json({ message: 'Invalid username or password' });
-    }
+    const isMatch = await bcrypt.compare(password, (user as any).password);
+    if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });
 
     const token = jwt.sign({ userId: user._id, username: user.username }, JWT_SECRET);
     res.json({ token, username: user.username });
   } catch (err) {
-    res.status(500).json({ message: 'Error logging in' });
+    res.status(500).json({ message: 'Error' });
   }
 });
 
 // Score Routes
 app.post('/api/scores', authenticateToken, async (req: any, res) => {
+  await connectDB();
   try {
     const { gameType, mode, gen, streak } = req.body;
     const { userId, username } = req.user;
 
-    const score = new Score({
-      userId,
-      username,
-      gameType,
-      mode,
-      gen,
-      streak
-    });
-
+    const score = new Score({ userId, username, gameType, mode, gen, streak });
     await score.save();
     res.status(201).json(score);
   } catch (err) {
-    res.status(500).json({ message: 'Error saving score' });
+    res.status(500).json({ message: 'Error' });
   }
 });
 
 // Leaderboard Route
 app.get('/api/leaderboard', async (req, res) => {
+  await connectDB();
   try {
     const { gen } = req.query;
-    if (!gen) return res.status(400).json({ message: 'Generation required' });
-
-    // Fetch top 10 scores for each category/mode for the specific gen
     const scores = await Score.aggregate([
       { $match: { gen: Number(gen) } },
       { $sort: { streak: -1 } },
@@ -127,13 +110,16 @@ app.get('/api/leaderboard', async (req, res) => {
         }
       }
     ]);
-
     res.json(scores);
   } catch (err) {
-    res.status(500).json({ message: 'Error fetching leaderboard' });
+    res.status(500).json({ message: 'Error' });
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+// For local testing
+if (process.env.NODE_ENV !== 'production') {
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, () => console.log(`Server on ${PORT}`));
+}
+
+export default app;
