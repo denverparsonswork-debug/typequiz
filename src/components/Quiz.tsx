@@ -3,6 +3,8 @@ import type { PokemonType } from '../data/type-chart';
 import { generateQuestion, calculateEffectiveness, getExplanation } from '../logic/quiz-engine';
 import type { Question, Difficulty } from '../logic/quiz-engine';
 import TypeBadge from './TypeBadge';
+import { useAuth } from '../context/AuthContext';
+import AuthModal from './AuthModal';
 
 interface QuizProps {
   difficulty: Difficulty;
@@ -22,6 +24,11 @@ const Quiz: React.FC<QuizProps> = ({ difficulty, onReset, gen }) => {
   const [selectedTypes, setSelectedTypes] = useState<PokemonType[]>([]);
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
   const [showHints, setShowHints] = useState(true);
+  
+  const { isLoggedIn, token } = useAuth();
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [scoreSaved, setScoreSaved] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const nextQuestion = useCallback(() => {
     setQuestion(generateQuestion(difficulty, gen));
@@ -41,8 +48,44 @@ const Quiz: React.FC<QuizProps> = ({ difficulty, onReset, gen }) => {
     setStreak(0);
     setGameOver(false);
     setExplanation(null);
+    setScoreSaved(false);
     nextQuestion();
   }, [difficulty, highScoreKey, gen]);
+
+  const saveScore = async () => {
+    if (!isLoggedIn || streak === 0 || scoreSaved || isSaving) return;
+    
+    setIsSaving(true);
+    try {
+      const response = await fetch('http://localhost:5000/api/scores', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          gameType: 'type-quiz',
+          mode: difficulty,
+          gen: gen,
+          streak: streak
+        }),
+      });
+
+      if (response.ok) {
+        setScoreSaved(true);
+      }
+    } catch (err) {
+      console.error('Failed to save score:', err);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  useEffect(() => {
+    if (gameOver && isLoggedIn && streak > 0 && !scoreSaved) {
+      saveScore();
+    }
+  }, [gameOver, isLoggedIn, streak, scoreSaved]);
 
   useEffect(() => {
     if (difficulty === 'hard' && timeLeft !== null && timeLeft > 0 && !explanation && !gameOver) {
@@ -56,14 +99,12 @@ const Quiz: React.FC<QuizProps> = ({ difficulty, onReset, gen }) => {
   const handleTimeOut = () => {
     if (difficulty === 'hard' && !showHints) {
       setLives(0);
-      setStreak(0);
       setGameOver(true);
       return;
     }
     setExplanation("Time's up!");
     const newLives = lives - 1;
     setLives(newLives);
-    setStreak(0);
     if (newLives <= 0) {
       setGameOver(true);
     }
@@ -143,13 +184,14 @@ const Quiz: React.FC<QuizProps> = ({ difficulty, onReset, gen }) => {
     setLives(difficulty === 'hard' ? 1 : 3);
     setStreak(0);
     setGameOver(false);
+    setScoreSaved(false);
     nextQuestion();
   };
 
   if (!question) return <div>Loading...</div>;
 
   return (
-    <div className="w-full max-w-2xl mx-auto p-3 sm:p-6 bg-gray-900 text-white rounded-xl shadow-2xl border border-gray-700">
+    <div className="w-full max-w-2xl mx-auto p-3 sm:p-6 bg-gray-900 text-white rounded-xl shadow-2xl border border-gray-700 relative overflow-hidden">
       <div className="flex justify-between items-center mb-6 border-b border-gray-700 pb-4 gap-2">
         <div className="text-left min-w-[60px]">
           <p className="text-gray-400 text-[10px] sm:text-xs uppercase">Streak</p>
@@ -189,7 +231,7 @@ const Quiz: React.FC<QuizProps> = ({ difficulty, onReset, gen }) => {
       {!gameOver ? (
         <>
           <div className="mb-8 text-center">
-            <h2 className="text-lg sm:text-xl mb-4 text-gray-300">What is Super Effective against?</h2>
+            <h2 className="text-lg sm:text-xl mb-4 text-gray-300 font-bold uppercase tracking-tight">What is Super Effective against?</h2>
             <div className="flex justify-center gap-2 sm:gap-4">
               {question.defenderTypes.map((type, i) => (
                 <TypeBadge key={i} type={type} large />
@@ -237,9 +279,30 @@ const Quiz: React.FC<QuizProps> = ({ difficulty, onReset, gen }) => {
           )}
         </>
       ) : (
-        <div className="text-center py-6 sm:py-10">
-          <h2 className="text-3xl sm:text-5xl font-black text-red-500 mb-4 uppercase">Game Over</h2>
-          <p className="text-xl sm:text-2xl mb-8 text-gray-400">Final streak: <span className="text-white font-bold">{streak}</span></p>
+        <div className="text-center py-6 sm:py-10 space-y-8">
+          <div className="space-y-2">
+            <h2 className="text-3xl sm:text-5xl font-black text-red-500 uppercase">Game Over</h2>
+            <p className="text-xl sm:text-2xl text-gray-400">Final streak: <span className="text-white font-bold">{streak}</span></p>
+          </div>
+
+          {!isLoggedIn && streak > 0 && (
+            <div className="p-6 bg-blue-600/10 border border-blue-500/20 rounded-3xl space-y-4 animate-in zoom-in duration-500">
+              <p className="text-sm text-blue-300 font-bold uppercase tracking-widest">Register to save this score!</p>
+              <button
+                onClick={() => setIsAuthModalOpen(true)}
+                className="px-8 py-3 bg-blue-600 text-white rounded-full font-bold text-lg hover:bg-blue-500 transition-transform active:scale-95 shadow-lg shadow-blue-500/20"
+              >
+                Sign Up Now
+              </button>
+            </div>
+          )}
+
+          {isLoggedIn && streak > 0 && (
+            <div className="flex items-center justify-center gap-2 text-green-400 font-bold uppercase tracking-widest text-xs">
+              {scoreSaved ? '✅ Streak saved to leaderboard' : '⏳ Saving streak...'}
+            </div>
+          )}
+
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <button
               onClick={restartGame}
@@ -270,6 +333,12 @@ const Quiz: React.FC<QuizProps> = ({ difficulty, onReset, gen }) => {
           </span>
         </label>
       </div>
+
+      <AuthModal 
+        isOpen={isAuthModalOpen} 
+        onClose={() => setIsAuthModalOpen(false)}
+        onSuccess={saveScore}
+      />
     </div>
   );
 };

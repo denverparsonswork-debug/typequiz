@@ -1,73 +1,78 @@
-# React + TypeScript + Vite
+# PKMN LABS: Competitive Training Suite
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A high-performance training ground for aspiring Pokémon Champions. Master type matchups, ability synergies, and move interactions across all 9 generations.
 
-Currently, two official plugins are available:
+## 🚀 Current Status
+- **Active Feature:** MongoDB Integration & Categorized Leaderboard (Complete)
+- **Last Updated:** April 17, 2026
+- **Build Status:** Passing (v0.2.0)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+---
 
-## React Compiler
+## 🛠 Feature Roadmap
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### ✅ Completed
+- [x] **Type Matchup Quiz:** Core engine with difficulty levels (Easy, Dual, Hard).
+- [x] **Move Mastery:** Pokémon sprite-based identification of super-effective moves.
+- [x] **Ability Oracle:** Matching ability descriptions to names.
+- [x] **Ability Synergy:** Identifying legal abilities for specific Pokémon.
+- [x] **Gen Selector:** Full support for mechanics from Gens 1 through 9.
+- [x] **Resources Hub:** Dynamic type chart and community links.
+- [x] **UI Polish:** SVG life counters, mobile responsiveness, and dark-mode aesthetic.
+- [x] **User Authentication:** Secure JWT-based signup/login system with password hashing.
+- [x] **Global Leaderboard:** Categorized rankings by game type, mode, and generation.
+- [x] **Database Persistence:** MongoDB integration for cross-session score tracking.
 
-## Expanding the ESLint configuration
+### 🚧 In Progress (Next Session)
+- [ ] **Custom Drills:** Select specific types or generations to focus on.
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+### 📅 Planned Features
+- [ ] **Challenge Mode:** Weekly rotating gauntlets with special rules.
+- [ ] **Sound Suite:** Retro-inspired SFX and ambient battle music.
+- [ ] **Pokedex Integration:** View detailed stats for Pokémon encountered in quizzes.
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+---
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+## 📋 Session Log
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### 2026-04-17 (Session 2)
+- Implemented Full-Stack architecture with Node.js/Express and MongoDB.
+- Built a secure Authentication system (Sign In / Sign Up) with security warnings.
+- Created a categorized, multi-tiered Leaderboard with Generation-specific filtering.
+- Integrated "Retroactive Saving" - prompting users to register to save high scores.
+- Fixed heart icon rendering issues and streak reset bugs in all game modes.
+- Added dynamic Type Chart reference to the Resources tab.
+
+### 2026-04-17 (Session 1)
+- Finalized Gen Selector implementation across all modules.
+- Initialized README-based project tracking system.
+
+---
+
+## 🔧 Development
+
+### 1. Prerequisite
+Ensure **MongoDB** is running locally on `mongodb://localhost:27017`.
+
+### 2. Backend Setup
+```bash
+cd server
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### 3. Frontend Setup
+```bash
+# In the root directory
+npm install
+npm run dev
+```
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### 4. Build for Production
+```bash
+# Root directory
+npm run build
+# Server directory
+cd server
+npm run build
 ```

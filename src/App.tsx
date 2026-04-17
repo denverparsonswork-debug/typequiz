@@ -5,14 +5,19 @@ import AbilityDescQuiz from './components/AbilityDescQuiz';
 import PokemonAbilityQuiz from './components/PokemonAbilityQuiz';
 import Resources from './components/Resources';
 import LandingPage from './components/LandingPage';
+import Leaderboard from './components/Leaderboard';
+import AuthModal from './components/AuthModal';
+import { useAuth } from './context/AuthContext';
 import type { Difficulty } from './logic/quiz-engine';
 
-type View = 'landing' | 'type-quiz-menu' | 'type-quiz-game' | 'move-mastery' | 'ability-desc' | 'pokemon-ability' | 'resources';
+type View = 'landing' | 'type-quiz-menu' | 'type-quiz-game' | 'move-mastery' | 'ability-desc' | 'pokemon-ability' | 'resources' | 'leaderboard';
 
 function App() {
   const [view, setView] = useState<View>('landing');
   const [difficulty, setDifficulty] = useState<Difficulty | null>(null);
   const [activeGen, setActiveGen] = useState<number>(9);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const { isLoggedIn, username, logout } = useAuth();
 
   const startTypeQuiz = (diff: Difficulty) => {
     setDifficulty(diff);
@@ -49,19 +54,24 @@ function App() {
     setDifficulty(null);
   };
 
+  const goToLeaderboard = () => {
+    setView('leaderboard');
+    setDifficulty(null);
+  };
+
   return (
     <div className="min-h-screen bg-gray-950 flex flex-col items-center p-4 font-sans w-full overflow-x-hidden text-white">
       {/* Navigation Header */}
-      <nav className="w-full max-w-6xl flex justify-between items-center py-6 mb-8 border-b border-gray-900">
+      <nav className="w-full max-w-6xl flex justify-between items-center py-6 mb-8 border-b border-gray-900 gap-4">
         <div 
-          className="text-2xl font-black tracking-tighter cursor-pointer hover:opacity-80 transition-opacity uppercase italic"
+          className="text-2xl font-black tracking-tighter cursor-pointer hover:opacity-80 transition-opacity uppercase italic shrink-0"
           onClick={resetToLanding}
         >
           PKMN <span className="text-blue-500">LABS</span>
         </div>
         
         {/* Gen Selector */}
-        <div className="flex items-center gap-3 bg-gray-900/50 border border-gray-800 px-4 py-2 rounded-xl">
+        <div className="flex items-center gap-3 bg-gray-900/50 border border-gray-800 px-4 py-2 rounded-xl shrink-0">
           <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest hidden sm:inline">Active Gen</span>
           <select 
             value={activeGen}
@@ -77,15 +87,34 @@ function App() {
         <div className="hidden lg:flex gap-8 text-xs font-bold uppercase tracking-widest text-gray-400">
           <span className="hover:text-white cursor-pointer transition-colors" onClick={resetToLanding}>Home</span>
           <span className="hover:text-white cursor-pointer transition-colors" onClick={goToTypeMenu}>Training</span>
+          <span className="hover:text-white cursor-pointer transition-colors" onClick={goToLeaderboard}>Leaderboard</span>
           <span className="hover:text-white cursor-pointer transition-colors" onClick={goToResources}>Resources</span>
         </div>
 
-        <button 
-          className="px-5 py-2 bg-gray-900 border border-gray-800 rounded-lg text-xs font-bold uppercase tracking-widest hover:border-gray-700 transition-all sm:inline-block hidden"
-          onClick={goToTypeMenu}
-        >
-          Train Now
-        </button>
+        <div className="flex items-center gap-4 shrink-0">
+          {isLoggedIn ? (
+            <div className="flex items-center gap-3">
+              <div className="hidden sm:flex flex-col items-end">
+                <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest leading-none">Trainer</span>
+                <span className="text-sm font-black text-blue-400 uppercase italic leading-none">{username}</span>
+              </div>
+              <button 
+                onClick={logout}
+                className="p-2 hover:text-red-500 transition-colors"
+                title="Logout"
+              >
+                🚪
+              </button>
+            </div>
+          ) : (
+            <button 
+              onClick={() => setIsAuthModalOpen(true)}
+              className="px-5 py-2 bg-blue-600/10 border border-blue-500/20 rounded-lg text-xs font-bold uppercase tracking-widest text-blue-400 hover:bg-blue-600/20 transition-all"
+            >
+              Sign In
+            </button>
+          )}
+        </div>
       </nav>
 
       {/* Main Content Area */}
@@ -102,6 +131,10 @@ function App() {
 
         {view === 'resources' && (
           <Resources gen={activeGen} />
+        )}
+
+        {view === 'leaderboard' && (
+          <Leaderboard gen={activeGen} />
         )}
 
         {view === 'type-quiz-menu' && (
@@ -181,6 +214,11 @@ function App() {
           </div>
         )}
       </main>
+
+      <AuthModal 
+        isOpen={isAuthModalOpen} 
+        onClose={() => setIsAuthModalOpen(false)} 
+      />
     </div>
   );
 }
