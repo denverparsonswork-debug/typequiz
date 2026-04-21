@@ -97,7 +97,11 @@ export const getExplanation = (
   return `${attacker} is ${parts.join(' and ')}. Final: ${resultText}${abilityNote}`;
 };
 
-export const generateQuestion = (difficulty: Difficulty, gen: number = 9): Question => {
+export const generateQuestion = (
+  difficulty: Difficulty, 
+  gen: number = 9,
+  mode: 'effective' | 'resist' = 'effective'
+): Question => {
   const allowedTypes = getTypesForGen(gen);
   
   let defenderTypes: PokemonType[] = [];
@@ -122,12 +126,21 @@ export const generateQuestion = (difficulty: Difficulty, gen: number = 9): Quest
     }
   }
 
-  const superEffectiveTypes = allowedTypes.filter(t => calculateEffectiveness(t, defenderTypes, gen) > 1);
-  if (superEffectiveTypes.length === 0) return generateQuestion(difficulty, gen);
+  let correctTypes: PokemonType[];
+  let wrongTypes: PokemonType[];
 
-  const correctAnswer = superEffectiveTypes[Math.floor(Math.random() * superEffectiveTypes.length)];
-  const otherTypes = allowedTypes.filter(t => calculateEffectiveness(t, defenderTypes, gen) <= 1);
-  const shuffledWrong = otherTypes.sort(() => 0.5 - Math.random());
+  if (mode === 'resist') {
+    correctTypes = allowedTypes.filter(t => calculateEffectiveness(t, defenderTypes, gen) < 1);
+    wrongTypes = allowedTypes.filter(t => calculateEffectiveness(t, defenderTypes, gen) >= 1);
+  } else {
+    correctTypes = allowedTypes.filter(t => calculateEffectiveness(t, defenderTypes, gen) > 1);
+    wrongTypes = allowedTypes.filter(t => calculateEffectiveness(t, defenderTypes, gen) <= 1);
+  }
+
+  if (correctTypes.length === 0) return generateQuestion(difficulty, gen, mode);
+
+  const correctAnswer = correctTypes[Math.floor(Math.random() * correctTypes.length)];
+  const shuffledWrong = wrongTypes.sort(() => 0.5 - Math.random());
   const options = [correctAnswer, ...shuffledWrong.slice(0, 3)].sort(() => 0.5 - Math.random());
 
   return { defenderTypes, options, correctAnswer };

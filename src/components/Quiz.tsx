@@ -24,6 +24,7 @@ const Quiz: React.FC<QuizProps> = ({ difficulty, onReset, gen }) => {
   const [selectedTypes, setSelectedTypes] = useState<PokemonType[]>([]);
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
   const [showHints, setShowHints] = useState(true);
+  const [isResistMode, setIsResistMode] = useState(false);
   
   const { isLoggedIn, token } = useAuth();
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
@@ -31,7 +32,7 @@ const Quiz: React.FC<QuizProps> = ({ difficulty, onReset, gen }) => {
   const [isSaving, setIsSaving] = useState(false);
 
   const nextQuestion = useCallback(() => {
-    setQuestion(generateQuestion(difficulty, gen));
+    setQuestion(generateQuestion(difficulty, gen, isResistMode ? 'resist' : 'effective'));
     setAttempts(0);
     setExplanation(null);
     setSelectedTypes([]);
@@ -39,7 +40,7 @@ const Quiz: React.FC<QuizProps> = ({ difficulty, onReset, gen }) => {
       const time = Math.max(5, 15 - streak * 0.5);
       setTimeLeft(time);
     }
-  }, [difficulty, streak, gen]);
+  }, [difficulty, streak, gen, isResistMode]);
 
   useEffect(() => {
     const saved = Number(localStorage.getItem(highScoreKey) || '0');
@@ -50,7 +51,7 @@ const Quiz: React.FC<QuizProps> = ({ difficulty, onReset, gen }) => {
     setExplanation(null);
     setScoreSaved(false);
     nextQuestion();
-  }, [difficulty, highScoreKey, gen]);
+  }, [difficulty, highScoreKey, gen, isResistMode]);
 
   const saveScore = async () => {
     if (!isLoggedIn || streak === 0 || scoreSaved || isSaving) return;
@@ -65,7 +66,7 @@ const Quiz: React.FC<QuizProps> = ({ difficulty, onReset, gen }) => {
         },
         body: JSON.stringify({
           gameType: 'type-quiz',
-          mode: difficulty,
+          mode: isResistMode ? `resist-${difficulty}` : difficulty,
           gen: gen,
           streak: streak
         }),
@@ -114,7 +115,7 @@ const Quiz: React.FC<QuizProps> = ({ difficulty, onReset, gen }) => {
     if (explanation || gameOver || selectedTypes.includes(type)) return;
 
     const effectiveness = calculateEffectiveness(type, question!.defenderTypes, gen);
-    const isCorrect = effectiveness > 1;
+    const isCorrect = isResistMode ? effectiveness < 1 : effectiveness > 1;
     
     if (difficulty === 'hard' && !showHints) {
       if (isCorrect) {
@@ -210,6 +211,9 @@ const Quiz: React.FC<QuizProps> = ({ difficulty, onReset, gen }) => {
               </svg>
             ))}
           </div>
+          <div className="text-[10px] sm:text-xs text-blue-400 font-bold uppercase tracking-widest text-center">
+            TYPE QUIZ: {isResistMode ? 'RESIST' : 'EFFECTIVE'}
+          </div>
           {difficulty === 'hard' && timeLeft !== null && (
             <div className={`text-lg sm:text-xl font-mono font-bold ${timeLeft <= 3 ? 'text-red-500 animate-pulse' : 'text-blue-400'}`}>
               ⏱️ {timeLeft.toFixed(0)}s
@@ -231,7 +235,11 @@ const Quiz: React.FC<QuizProps> = ({ difficulty, onReset, gen }) => {
       {!gameOver ? (
         <>
           <div className="mb-8 text-center">
-            <h2 className="text-lg sm:text-xl mb-4 text-gray-300 font-bold uppercase tracking-tight">What is Super Effective against?</h2>
+            <h2 className="text-lg sm:text-xl mb-4 text-gray-300 font-bold uppercase tracking-tight">
+              What is <span className={`${isResistMode ? 'text-purple-400' : 'text-blue-400'} font-black`}>
+                {isResistMode ? 'NOT VERY EFFECTIVE' : 'SUPER EFFECTIVE'}
+              </span> against?
+            </h2>
             <div className="flex justify-center gap-2 sm:gap-4">
               {question.defenderTypes.map((type, i) => (
                 <TypeBadge key={i} type={type} large />
@@ -320,7 +328,7 @@ const Quiz: React.FC<QuizProps> = ({ difficulty, onReset, gen }) => {
         </div>
       )}
 
-      <div className="mt-6 pt-4 border-t border-gray-800 flex justify-center">
+      <div className="mt-6 pt-4 border-t border-gray-800 flex flex-col items-center gap-3">
         <label className="flex items-center gap-2 cursor-pointer group">
           <input
             type="checkbox"
@@ -330,6 +338,17 @@ const Quiz: React.FC<QuizProps> = ({ difficulty, onReset, gen }) => {
           />
           <span className="text-gray-400 text-sm group-hover:text-gray-300 transition-colors">
             Show detailed hints & explanations
+          </span>
+        </label>
+        <label className="flex items-center gap-2 cursor-pointer group">
+          <input
+            type="checkbox"
+            checked={isResistMode}
+            onChange={(e) => setIsResistMode(e.target.checked)}
+            className="w-4 h-4 rounded border-gray-700 bg-gray-800 text-yellow-500 focus:ring-yellow-500 focus:ring-offset-gray-900"
+          />
+          <span className="text-gray-400 text-sm group-hover:text-gray-300 transition-colors font-bold uppercase tracking-tight">
+            Resistance Training (Invert Logic)
           </span>
         </label>
       </div>
