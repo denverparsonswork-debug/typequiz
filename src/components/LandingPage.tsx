@@ -150,9 +150,9 @@ const LandingPage: React.FC<LandingPageProps> = ({
       {/* Hero Section */}
       <section className="flex flex-col md:flex-row items-center justify-between gap-12 w-full">
         <div className="flex-1 text-center md:text-left space-y-6">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-bold tracking-widest uppercase mb-4">
-            <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-            Active Training: Gen {activeGen} Mode
+          <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border text-xs font-bold tracking-widest uppercase mb-4 ${activeGen === 0 ? 'bg-yellow-500/10 border-yellow-500/20 text-yellow-500' : 'bg-blue-500/10 border-blue-500/20 text-blue-400'}`}>
+            <span className={`w-2 h-2 rounded-full animate-pulse ${activeGen === 0 ? 'bg-yellow-500' : 'bg-blue-500'}`} />
+            Active Training: {activeGen === 0 ? 'Champion / VGC Meta' : `Gen ${activeGen} Mode`}
           </div>
           <h1 className="text-5xl sm:text-7xl font-black text-white tracking-tighter leading-none">
             MASTER <br />

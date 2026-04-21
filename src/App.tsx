@@ -102,12 +102,13 @@ function App() {
         
         {/* Gen Selector */}
         <div className="flex items-center gap-3 bg-gray-900/50 border border-gray-800 px-4 py-2 rounded-xl shrink-0">
-          <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest hidden sm:inline">Active Gen</span>
+          <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest hidden sm:inline">Active Mode</span>
           <select 
             value={activeGen}
             onChange={(e) => setActiveGen(Number(e.target.value))}
             className="bg-transparent text-blue-400 font-bold text-sm focus:outline-none cursor-pointer"
           >
+            <option value={0} className="bg-gray-900 text-yellow-500 font-black">🏆 Champion (VGC)</option>
             {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(g => (
               <option key={g} value={g} className="bg-gray-900 text-white">Gen {g}</option>
             ))}

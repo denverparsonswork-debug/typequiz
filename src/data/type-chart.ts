@@ -65,7 +65,7 @@ const MODERN_CHART: Record<PokemonType, Partial<Record<PokemonType, number>>> = 
 };
 
 export const getTypeChart = (gen: number): Record<PokemonType, Partial<Record<PokemonType, number>>> => {
-  if (gen >= 6) return MODERN_CHART;
+  if (gen === 0 || gen >= 6) return MODERN_CHART;
 
   // Deep clone modern chart to modify it
   const chart: Record<PokemonType, Partial<Record<PokemonType, number>>> = JSON.parse(JSON.stringify(MODERN_CHART));
@@ -117,7 +117,7 @@ export const getTypeChart = (gen: number): Record<PokemonType, Partial<Record<Po
 
 export const getTypesForGen = (gen: number): PokemonType[] => {
   const all = Object.values(PokemonType) as PokemonType[];
-  if (gen >= 6) return all;
+  if (gen === 0 || gen >= 6) return all;
   if (gen >= 2) return all.filter(t => t !== PokemonType.Fairy);
   return all.filter(t => !( [PokemonType.Steel, PokemonType.Dark, PokemonType.Fairy] as PokemonType[]).includes(t));
 };

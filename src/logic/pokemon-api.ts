@@ -1,5 +1,6 @@
 import { PokemonType } from '../data/type-chart';
 import { normalizeAbilityName } from './ability-engine';
+import { VGC_META_IDS } from '../data/vgc-meta';
 
 export interface PokemonData {
   name: string;
@@ -44,8 +45,16 @@ const GEN_ID_RANGES: Record<number, number> = {
 };
 
 export const fetchRandomPokemon = async (gen: number = 9): Promise<PokemonData> => {
-  const maxId = GEN_ID_RANGES[gen] || 1025;
-  const randomId = Math.floor(Math.random() * maxId) + 1;
+  let randomId: number;
+  
+  if (gen === 0) {
+    // VGC / Champion Mode
+    randomId = VGC_META_IDS[Math.floor(Math.random() * VGC_META_IDS.length)];
+  } else {
+    const maxId = GEN_ID_RANGES[gen] || 1025;
+    randomId = Math.floor(Math.random() * maxId) + 1;
+  }
+
   const response = await fetch(`https://pokeapi.co/api/v2/pokemon/${randomId}`);
   if (!response.ok) throw new Error('Failed to fetch Pokemon');
   

@@ -87,7 +87,12 @@ const SpeedQuiz: React.FC<SpeedQuizProps> = ({ onReset, gen }) => {
     if (isCorrect) {
       const winner = choice === 'A' ? question!.pokemonA : question!.pokemonB;
       const loser = choice === 'A' ? question!.pokemonB : question!.pokemonA;
-      setExplanation(`Correct! ${winner.name} (Base ${winner.speed}) is faster than ${loser.name} (Base ${loser.speed}).`);
+      
+      const winnerSpeed = gen === 0 ? Math.floor((winner.speed + 52) * 1.1) : winner.speed;
+      const loserSpeed = gen === 0 ? Math.floor((loser.speed + 52) * 1.1) : loser.speed;
+      const label = gen === 0 ? 'Lv50 Speed' : 'Base Speed';
+
+      setExplanation(`Correct! ${winner.name} (${label} ${winnerSpeed}) is faster than ${loser.name} (${label} ${loserSpeed}).`);
       const newStreak = streak + 1;
       setStreak(newStreak);
       if (newStreak > highScore) {
@@ -97,8 +102,12 @@ const SpeedQuiz: React.FC<SpeedQuizProps> = ({ onReset, gen }) => {
     } else {
       const winner = choice === 'A' ? question!.pokemonB : question!.pokemonA;
       const loser = choice === 'A' ? question!.pokemonA : question!.pokemonB;
+      
+      const winnerSpeed = gen === 0 ? Math.floor((winner.speed + 52) * 1.1) : winner.speed;
+      const label = gen === 0 ? 'Lv50 Speed' : 'Base Speed';
+
       setLives(lives - 1);
-      setExplanation(`Wrong. ${winner.name} (Base ${winner.speed}) moves first.`);
+      setExplanation(`Wrong. ${winner.name} (${label} ${winnerSpeed}) moves first.`);
       if (lives <= 1) setGameOver(true);
     }
   };
@@ -170,6 +179,11 @@ const SpeedQuiz: React.FC<SpeedQuizProps> = ({ onReset, gen }) => {
                 <img src={question.pokemonA.sprite} className="w-24 h-24 sm:w-32 sm:h-32 drop-shadow-xl group-hover:scale-110 transition-transform" />
                 <div className="text-center">
                   <h3 className="text-sm sm:text-lg font-black uppercase italic tracking-tighter">{question.pokemonA.name}</h3>
+                  {gen === 0 && (
+                    <div className="text-[10px] font-bold text-blue-400 uppercase tracking-widest mt-1">
+                      Lv50 Max: {Math.floor((question.pokemonA.speed + 52) * 1.1)}
+                    </div>
+                  )}
                   {question.modifierA && (
                     <span className="text-[10px] font-bold text-yellow-500 bg-yellow-500/10 px-2 py-0.5 rounded border border-yellow-500/20 uppercase mt-2 inline-block">
                       {question.modifierA}
@@ -189,6 +203,11 @@ const SpeedQuiz: React.FC<SpeedQuizProps> = ({ onReset, gen }) => {
                 <img src={question.pokemonB.sprite} className="w-24 h-24 sm:w-32 sm:h-32 drop-shadow-xl group-hover:scale-110 transition-transform" />
                 <div className="text-center">
                   <h3 className="text-sm sm:text-lg font-black uppercase italic tracking-tighter">{question.pokemonB.name}</h3>
+                  {gen === 0 && (
+                    <div className="text-[10px] font-bold text-blue-400 uppercase tracking-widest mt-1">
+                      Lv50 Max: {Math.floor((question.pokemonB.speed + 52) * 1.1)}
+                    </div>
+                  )}
                   {question.modifierB && (
                     <span className="text-[10px] font-bold text-yellow-500 bg-yellow-500/10 px-2 py-0.5 rounded border border-yellow-500/20 uppercase mt-2 inline-block">
                       {question.modifierB}
