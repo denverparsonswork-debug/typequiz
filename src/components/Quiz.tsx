@@ -251,9 +251,10 @@ const Quiz: React.FC<QuizProps> = ({ difficulty, onReset, gen }) => {
             {question.options.map((type, i) => {
               const isSelected = selectedTypes.includes(type);
               const isCorrect = type === question.correctAnswer;
+              const isResolved = explanation && !explanation.includes("Try one more time");
               
               let buttonClass = "p-1 sm:p-2 rounded-lg transition-all transform active:scale-95 w-full";
-              if (explanation && isCorrect) {
+              if (isResolved && isCorrect) {
                 buttonClass += " border-2 sm:border-4 border-green-500 ring-2 sm:ring-4 ring-green-500/30";
               } else if (isSelected) {
                 buttonClass += " border-2 sm:border-4 border-red-500 opacity-50 grayscale";
