@@ -8,6 +8,9 @@ interface LandingPageProps {
   onStartPokemonAbility: () => void;
   onStartTeraQuiz: () => void;
   onStartCoverageQuiz: () => void;
+  onStartSpeedQuiz: () => void;
+  onStartCommonThreatQuiz: () => void;
+  onStartItemQuiz: () => void;
   activeGen: number;
 }
 
@@ -16,7 +19,7 @@ interface Module {
   title: string;
   description: string;
   icon: string;
-  category: 'Core Fundamentals' | 'Advanced Tactics' | 'Technical Knowledge';
+  category: 'Core Fundamentals' | 'Advanced Tactics' | 'Battle Intelligence';
   color: string;
   keywords: string[];
   action: () => void;
@@ -29,6 +32,9 @@ const LandingPage: React.FC<LandingPageProps> = ({
   onStartPokemonAbility,
   onStartTeraQuiz,
   onStartCoverageQuiz,
+  onStartSpeedQuiz,
+  onStartCommonThreatQuiz,
+  onStartItemQuiz,
   activeGen
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -55,6 +61,16 @@ const LandingPage: React.FC<LandingPageProps> = ({
       action: onStartMoveQuiz
     },
     {
+      id: 'item-intuition',
+      title: 'Item Intuition',
+      description: 'Identify competitive held items by their battle effects.',
+      icon: '🎒',
+      category: 'Core Fundamentals',
+      color: 'yellow',
+      keywords: ['item', 'held item', 'choice scarf', 'life orb', 'focus sash', 'intuition'],
+      action: onStartItemQuiz
+    },
+    {
       id: 'tera-specialist',
       title: 'Tera Specialist',
       description: 'Predict the optimal Tera Type to flip a defensive matchup.',
@@ -75,11 +91,31 @@ const LandingPage: React.FC<LandingPageProps> = ({
       action: onStartCoverageQuiz
     },
     {
+      id: 'common-threat',
+      title: 'Common Threat',
+      description: 'Spot the one type that threatens an entire team block.',
+      icon: '🧨',
+      category: 'Advanced Tactics',
+      color: 'red',
+      keywords: ['threat', 'synergy', 'team', 'weakness', 'shared', 'analysis'],
+      action: onStartCommonThreatQuiz
+    },
+    {
+      id: 'speed-tiers',
+      title: 'Speed Tiers',
+      description: 'Determine who moves first in high-stakes initiative drills.',
+      icon: '⚡',
+      category: 'Battle Intelligence',
+      color: 'yellow',
+      keywords: ['speed', 'priority', 'initiative', 'scarf', 'tailwind', 'tier'],
+      action: onStartSpeedQuiz
+    },
+    {
       id: 'ability-oracle',
       title: 'Ability Oracle',
       description: 'Match ability descriptions to their competitive names.',
       icon: '🧿',
-      category: 'Technical Knowledge',
+      category: 'Battle Intelligence',
       color: 'red',
       keywords: ['ability', 'description', 'oracle', 'name', 'effect', 'memorize'],
       action: onStartAbilityDesc
@@ -89,7 +125,7 @@ const LandingPage: React.FC<LandingPageProps> = ({
       title: 'Ability Synergy',
       description: 'Identify which legal abilities belong to each Pokémon.',
       icon: '🧬',
-      category: 'Technical Knowledge',
+      category: 'Battle Intelligence',
       color: 'cyan',
       keywords: ['ability', 'synergy', 'pokemon', 'legal', 'pool', 'recognition'],
       action: onStartPokemonAbility
@@ -107,7 +143,7 @@ const LandingPage: React.FC<LandingPageProps> = ({
     );
   }, [searchQuery]);
 
-  const categories = ['Core Fundamentals', 'Advanced Tactics', 'Technical Knowledge'] as const;
+  const categories = ['Core Fundamentals', 'Advanced Tactics', 'Battle Intelligence'] as const;
 
   return (
     <div className="flex flex-col items-center w-full max-w-6xl mx-auto px-4 py-8 sm:py-16 space-y-20">

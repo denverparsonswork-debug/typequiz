@@ -7,6 +7,7 @@ export interface PokemonData {
   sprite: string;
   activeAbility: string;
   allAbilities: string[]; // Normalized names
+  speed: number;
 }
 
 const TYPE_MAP: Record<string, PokemonType> = {
@@ -59,11 +60,15 @@ export const fetchRandomPokemon = async (gen: number = 9): Promise<PokemonData> 
     ? data.abilities[Math.floor(Math.random() * data.abilities.length)].ability.name
     : 'none';
   
+  const speedStat = data.stats.find((s: any) => s.stat.name === 'speed');
+  const speed = speedStat ? speedStat.base_stat : 100;
+
   return {
     name: data.name.toUpperCase(),
     types: data.types.map((t: any) => TYPE_MAP[t.type.name]),
     sprite: data.sprites.other['official-artwork'].front_default || data.sprites.front_default,
     activeAbility,
     allAbilities,
+    speed,
   };
 };

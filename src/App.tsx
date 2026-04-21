@@ -5,6 +5,9 @@ import AbilityDescQuiz from './components/AbilityDescQuiz';
 import PokemonAbilityQuiz from './components/PokemonAbilityQuiz';
 import TeraQuiz from './components/TeraQuiz';
 import CoverageQuiz from './components/CoverageQuiz';
+import SpeedQuiz from './components/SpeedQuiz';
+import CommonThreatQuiz from './components/CommonThreatQuiz';
+import ItemQuiz from './components/ItemQuiz';
 import Resources from './components/Resources';
 import LandingPage from './components/LandingPage';
 import Leaderboard from './components/Leaderboard';
@@ -12,7 +15,7 @@ import AuthModal from './components/AuthModal';
 import { useAuth } from './context/AuthContext';
 import type { Difficulty } from './logic/quiz-engine';
 
-type View = 'landing' | 'type-quiz-menu' | 'type-quiz-game' | 'move-mastery' | 'ability-desc' | 'pokemon-ability' | 'tera-quiz' | 'coverage-quiz' | 'resources' | 'leaderboard';
+type View = 'landing' | 'type-quiz-menu' | 'type-quiz-game' | 'move-mastery' | 'ability-desc' | 'pokemon-ability' | 'tera-quiz' | 'coverage-quiz' | 'speed-quiz' | 'common-threat' | 'item-quiz' | 'resources' | 'leaderboard';
 
 function App() {
   const [view, setView] = useState<View>('landing');
@@ -58,6 +61,21 @@ function App() {
 
   const startCoverageQuiz = () => {
     setView('coverage-quiz');
+    setDifficulty(null);
+  };
+
+  const startSpeedQuiz = () => {
+    setView('speed-quiz');
+    setDifficulty(null);
+  };
+
+  const startCommonThreatQuiz = () => {
+    setView('common-threat');
+    setDifficulty(null);
+  };
+
+  const startItemQuiz = () => {
+    setView('item-quiz');
     setDifficulty(null);
   };
 
@@ -139,6 +157,9 @@ function App() {
             onStartPokemonAbility={startPokemonAbility}
             onStartTeraQuiz={startTeraQuiz}
             onStartCoverageQuiz={startCoverageQuiz}
+            onStartSpeedQuiz={startSpeedQuiz}
+            onStartCommonThreatQuiz={startCommonThreatQuiz}
+            onStartItemQuiz={startItemQuiz}
             activeGen={activeGen}
           />
         )}
@@ -237,6 +258,24 @@ function App() {
         {view === 'coverage-quiz' && (
           <div className="w-full max-w-2xl animate-in slide-in-from-top-8 duration-500">
             <CoverageQuiz onReset={resetToLanding} gen={activeGen} />
+          </div>
+        )}
+
+        {view === 'speed-quiz' && (
+          <div className="w-full max-w-2xl animate-in slide-in-from-top-8 duration-500">
+            <SpeedQuiz onReset={resetToLanding} gen={activeGen} />
+          </div>
+        )}
+
+        {view === 'common-threat' && (
+          <div className="w-full max-w-2xl animate-in slide-in-from-top-8 duration-500">
+            <CommonThreatQuiz onReset={resetToLanding} gen={activeGen} />
+          </div>
+        )}
+
+        {view === 'item-quiz' && (
+          <div className="w-full max-w-2xl animate-in slide-in-from-top-8 duration-500">
+            <ItemQuiz onReset={resetToLanding} />
           </div>
         )}
       </main>

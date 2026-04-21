@@ -6,6 +6,8 @@ import type { PokemonData } from './pokemon-api';
 import { ABILITY_MODIFIERS, normalizeAbilityName } from './ability-engine';
 import { COMPETITIVE_ABILITIES } from '../data/abilities';
 import type { AbilityInfo } from '../data/abilities';
+import { COMPETITIVE_ITEMS } from '../data/items';
+import type { ItemInfo } from '../data/items';
 
 export type Difficulty = 'easy' | 'dual' | 'hard';
 
@@ -45,6 +47,26 @@ export interface CoverageQuestion {
   currentMoves: Move[];
   options: Move[];
   correctAnswer: Move;
+}
+
+export interface SpeedQuestion {
+  pokemonA: PokemonData;
+  pokemonB: PokemonData;
+  modifierA?: string;
+  modifierB?: string;
+  correctAnswer: 'A' | 'B';
+}
+
+export interface CommonThreatQuestion {
+  team: PokemonData[];
+  options: PokemonType[];
+  correctAnswer: PokemonType;
+}
+
+export interface ItemQuestion {
+  item: ItemInfo;
+  options: string[];
+  correctAnswer: string;
 }
 
 export const calculateEffectiveness = (
@@ -323,4 +345,80 @@ export const generateCoverageQuestion = async (gen: number = 9): Promise<Coverag
   const options = [correctAnswer, ...wrongOptions].sort(() => 0.5 - Math.random());
 
   return { defender, currentMoves, options, correctAnswer };
+};
+
+export const generateSpeedQuestion = async (gen: number = 9, difficulty: string = 'standard'): Promise<SpeedQuestion> => {
+  const pokemonA = await fetchRandomPokemon(gen);
+  const pokemonB = await fetchRandomPokemon(gen);
+  
+  if (pokemonA.name === pokemonB.name) return generateSpeedQuestion(gen, difficulty);
+  
+  let speedA = pokemonA.speed;
+  let speedB = pokemonB.speed;
+  let modifierA: string | undefined;
+  let modifierB: string | undefined;
+
+  if (difficulty === 'hard') {
+    // Add Scarf or Tailwind modifiers randomly
+    if (Math.random() < 0.3) {
+      speedA *= 1.5;
+      modifierA = 'Choice Scarf';
+    } else if (Math.random() < 0.2) {
+      speedA *= 2;
+      modifierA = 'Tailwind';
+    }
+
+    if (Math.random() < 0.3) {
+      speedB *= 1.5;
+      modifierB = 'Choice Scarf';
+    } else if (Math.random() < 0.2) {
+      speedB *= 2;
+      modifierB = 'Tailwind';
+    }
+  }
+
+  // Avoid identical speeds to keep it fair
+  if (Math.floor(speedA) === Math.floor(speedB)) return generateSpeedQuestion(gen, difficulty);
+
+  return {
+    pokemonA,
+    pokemonB,
+    modifierA,
+    modifierB,
+    correctAnswer: speedA > speedB ? 'A' : 'B'
+  };
+};
+
+export const generateCommonThreatQuestion = async (gen: number = 9): Promise<CommonThreatQuestion> => {
+  const p1 = await fetchRandomPokemon(gen);
+  const p2 = await fetchRandomPokemon(gen);
+  const p3 = await fetchRandomPokemon(gen);
+  const team = [p1, p2, p3];
+  
+  const allowedTypes = getTypesForGen(gen);
+  
+  // Find types that are super effective (> 1) against ALL members of the team
+  const sharedWeaknesses = allowedTypes.filter(attackerType => 
+    team.every(defender => calculateEffectiveness(attackerType, defender.types, gen, defender.activeAbility) > 1)
+  );
+
+  if (sharedWeaknesses.length === 0) return generateCommonThreatQuestion(gen);
+
+  const correctAnswer = sharedWeaknesses[Math.floor(Math.random() * sharedWeaknesses.length)];
+  
+  // Find types that are NOT super effective against at least one member
+  const wrongTypes = allowedTypes.filter(t => !sharedWeaknesses.includes(t));
+  const shuffledWrong = wrongTypes.sort(() => 0.5 - Math.random());
+  const options = [correctAnswer, ...shuffledWrong.slice(0, 3)].sort(() => 0.5 - Math.random());
+
+  return { team, options, correctAnswer };
+};
+
+export const generateItemQuestion = (): ItemQuestion => {
+  const correctItem = COMPETITIVE_ITEMS[Math.floor(Math.random() * COMPETITIVE_ITEMS.length)];
+  const otherItems = COMPETITIVE_ITEMS.filter(i => i.name !== correctItem.name);
+  const shuffledWrong = otherItems.sort(() => 0.5 - Math.random());
+  const options = [correctItem.name, ...shuffledWrong.slice(0, 3).map(i => i.name)].sort(() => 0.5 - Math.random());
+  
+  return { item: correctItem, options, correctAnswer: correctItem.name };
 };
