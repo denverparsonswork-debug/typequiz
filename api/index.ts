@@ -139,9 +139,18 @@ app.get('/api/leaderboard', async (req, res) => {
 });
 
 // For local testing
-if (process.env.NODE_ENV !== 'production') {
+if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
   const PORT = process.env.PORT || 5000;
   app.listen(PORT, () => console.log(`Server on ${PORT}`));
 }
+
+// Global Error Handler
+app.use((err: any, req: any, res: any, next: any) => {
+  console.error('Unhandled Error:', err);
+  res.status(500).json({ 
+    message: 'Internal Server Error', 
+    error: process.env.NODE_ENV === 'development' ? err.message : undefined 
+  });
+});
 
 export default app;
