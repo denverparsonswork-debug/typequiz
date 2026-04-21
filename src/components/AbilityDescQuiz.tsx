@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { generateAbilityDescQuestion } from '../logic/quiz-engine';
 import type { AbilityDescQuestion } from '../logic/quiz-engine';
+import { useAuth } from '../context/AuthContext';
+import AuthModal from './AuthModal';
 
 interface AbilityDescQuizProps {
   onReset: () => void;
@@ -16,6 +18,11 @@ const AbilityDescQuiz: React.FC<AbilityDescQuizProps> = ({ onReset }) => {
   const [gameOver, setGameOver] = useState(false);
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
 
+  const { isLoggedIn, token } = useAuth();
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [scoreSaved, setScoreSaved] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
   const nextQuestion = useCallback(() => {
     const q = generateAbilityDescQuestion();
     setQuestion(q);
@@ -24,8 +31,44 @@ const AbilityDescQuiz: React.FC<AbilityDescQuizProps> = ({ onReset }) => {
   }, []);
 
   useEffect(() => {
+    setScoreSaved(false);
     nextQuestion();
   }, []);
+
+  const saveScore = async () => {
+    if (!isLoggedIn || streak === 0 || scoreSaved || isSaving) return;
+    
+    setIsSaving(true);
+    try {
+      const response = await fetch('/api/scores', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          gameType: 'ability-desc',
+          mode: 'standard',
+          gen: 9, // Abilities are largely gen-independent in this quiz but we'll use 9 as default
+          streak: streak
+        }),
+      });
+
+      if (response.ok) {
+        setScoreSaved(true);
+      }
+    } catch (err) {
+      console.error('Failed to save score:', err);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  useEffect(() => {
+    if (gameOver && isLoggedIn && streak > 0 && !scoreSaved) {
+      saveScore();
+    }
+  }, [gameOver, isLoggedIn, streak, scoreSaved]);
 
   const handleGuess = (option: string) => {
     if (explanation || gameOver || selectedOptions.includes(option)) return;
@@ -45,7 +88,6 @@ const AbilityDescQuiz: React.FC<AbilityDescQuizProps> = ({ onReset }) => {
       const newLives = lives - 1;
       setLives(newLives);
       setExplanation(`Wrong. The correct answer was ${question!.correctAnswer}.`);
-      setStreak(0);
       if (newLives <= 0) {
         setGameOver(true);
       }
@@ -154,15 +196,36 @@ const AbilityDescQuiz: React.FC<AbilityDescQuizProps> = ({ onReset }) => {
                 onClick={handleContinue}
                 className="mt-4 px-6 sm:px-8 py-2 bg-white text-gray-900 rounded-full font-bold hover:bg-gray-200 transition-colors shadow-lg"
               >
-                Continue
+                {gameOver ? "Show Results" : "Continue"}
               </button>
             </div>
           )}
         </>
       ) : (
-        <div className="text-center py-6 sm:py-10">
-          <h2 className="text-3xl sm:text-5xl font-black text-red-500 mb-4 uppercase">Game Over</h2>
-          <p className="text-xl sm:text-2xl mb-8 text-gray-400">Final streak: <span className="text-white font-bold">{streak}</span></p>
+        <div className="text-center py-6 sm:py-10 space-y-8">
+          <div className="space-y-2">
+            <h2 className="text-3xl sm:text-5xl font-black text-red-500 mb-4 uppercase">Game Over</h2>
+            <p className="text-xl sm:text-2xl mb-8 text-gray-400">Final streak: <span className="text-white font-bold">{streak}</span></p>
+          </div>
+
+          {!isLoggedIn && streak > 0 && (
+            <div className="p-6 bg-blue-600/10 border border-blue-500/20 rounded-3xl space-y-4 animate-in zoom-in duration-500">
+              <p className="text-sm text-blue-300 font-bold uppercase tracking-widest">Register to save this score!</p>
+              <button
+                onClick={() => setIsAuthModalOpen(true)}
+                className="px-8 py-3 bg-blue-600 text-white rounded-full font-bold text-lg hover:bg-blue-500 transition-transform active:scale-95 shadow-lg shadow-blue-500/20"
+              >
+                Sign Up Now
+              </button>
+            </div>
+          )}
+
+          {isLoggedIn && streak > 0 && (
+            <div className="flex items-center justify-center gap-2 text-green-400 font-bold uppercase tracking-widest text-xs">
+              {scoreSaved ? '✅ Streak saved to leaderboard' : '⏳ Saving streak...'}
+            </div>
+          )}
+
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <button
               onClick={restartGame}
@@ -179,6 +242,12 @@ const AbilityDescQuiz: React.FC<AbilityDescQuizProps> = ({ onReset }) => {
           </div>
         </div>
       )}
+
+      <AuthModal 
+        isOpen={isAuthModalOpen} 
+        onClose={() => setIsAuthModalOpen(false)}
+        onSuccess={saveScore}
+      />
     </div>
   );
 };

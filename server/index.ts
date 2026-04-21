@@ -17,8 +17,9 @@ app.use(cors());
 app.use(express.json());
 
 // Connect to MongoDB
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/pokemon_type')
-  .then(() => console.log('Connected to MongoDB'))
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/pokemon_type';
+mongoose.connect(MONGODB_URI)
+  .then(() => console.log(`Connected to MongoDB: ${MONGODB_URI.includes('srv') ? 'Atlas' : 'Local'}`))
   .catch(err => console.error('MongoDB connection error:', err));
 
 // Middleware to verify JWT

@@ -3,11 +3,19 @@ import mongoose from 'mongoose';
 import cors from 'cors';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import dotenv from 'dotenv';
 import User from './models/User';
 import Score from './models/Score';
 
+// Load environment variables for local testing
+dotenv.config();
+
 const app = express();
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret';
+const JWT_SECRET = process.env.JWT_SECRET;
+
+if (!JWT_SECRET && process.env.NODE_ENV === 'production') {
+  console.warn('WARNING: JWT_SECRET is not defined. Using fallback for non-production only.');
+}
 
 app.use(cors());
 app.use(express.json());
@@ -16,17 +24,23 @@ app.use(express.json());
 const connectDB = async () => {
   if (mongoose.connection.readyState >= 1) return;
   
-  if (!process.env.MONGODB_URI) {
-    throw new Error('MONGODB_URI is not defined in environment variables');
+  const uri = process.env.MONGODB_URI;
+  
+  if (!uri) {
+    throw new Error('MONGODB_URI is not defined in environment variables. Please check your Vercel/Local config.');
   }
-
+  
   try {
-    await mongoose.connect(process.env.MONGODB_URI);
-    console.log('Connected to MongoDB Atlas');
+    await mongoose.connect(uri);
+    console.log('Successfully connected to MongoDB');
   } catch (err) {
-    console.error('MongoDB connection error:', err);
+    console.error('MongoDB connection error details:', err);
     throw err;
   }
+};
+
+const getJwtSecret = () => {
+  return process.env.JWT_SECRET || 'fallback_secret_only_for_dev';
 };
 
 // Middleware to verify JWT
@@ -36,7 +50,8 @@ const authenticateToken = (req: any, res: any, next: any) => {
 
   if (!token) return res.status(401).json({ message: 'No token provided' });
 
-  jwt.verify(token, JWT_SECRET, (err: any, user: any) => {
+  const secret = getJwtSecret();
+  jwt.verify(token, secret, (err: any, user: any) => {
     if (err) return res.status(403).json({ message: 'Invalid token' });
     req.user = user;
     next();
@@ -55,7 +70,8 @@ app.post('/api/auth/register', async (req, res) => {
     const user = new User({ username, password: hashedPassword });
     await user.save();
 
-    const token = jwt.sign({ userId: user._id, username: user.username }, JWT_SECRET);
+    const secret = getJwtSecret();
+    const token = jwt.sign({ userId: user._id, username: user.username }, secret);
     res.status(201).json({ token, username: user.username });
   } catch (err: any) {
     res.status(500).json({ message: err.message || 'Error during registration' });
@@ -72,7 +88,8 @@ app.post('/api/auth/login', async (req, res) => {
     const isMatch = await bcrypt.compare(password, (user as any).password);
     if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });
 
-    const token = jwt.sign({ userId: user._id, username: user.username }, JWT_SECRET);
+    const secret = getJwtSecret();
+    const token = jwt.sign({ userId: user._id, username: user.username }, secret);
     res.json({ token, username: user.username });
   } catch (err: any) {
     res.status(500).json({ message: err.message || 'Error during login' });
