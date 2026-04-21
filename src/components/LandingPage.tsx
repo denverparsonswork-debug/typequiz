@@ -6,6 +6,8 @@ interface LandingPageProps {
   onStartMoveQuiz: () => void;
   onStartAbilityDesc: () => void;
   onStartPokemonAbility: () => void;
+  onStartTeraQuiz: () => void;
+  onStartCoverageQuiz: () => void;
   activeGen: number;
 }
 
@@ -14,7 +16,7 @@ interface Module {
   title: string;
   description: string;
   icon: string;
-  category: 'Tactical Drills' | 'Ability Mastery' | 'Battle Mechanics';
+  category: 'Core Fundamentals' | 'Advanced Tactics' | 'Technical Knowledge';
   color: string;
   keywords: string[];
   action: () => void;
@@ -25,6 +27,8 @@ const LandingPage: React.FC<LandingPageProps> = ({
   onStartMoveQuiz, 
   onStartAbilityDesc, 
   onStartPokemonAbility,
+  onStartTeraQuiz,
+  onStartCoverageQuiz,
   activeGen
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -35,7 +39,7 @@ const LandingPage: React.FC<LandingPageProps> = ({
       title: 'Type Matchup',
       description: 'Master weaknesses and resistances across all generations.',
       icon: '⚔️',
-      category: 'Tactical Drills',
+      category: 'Core Fundamentals',
       color: 'blue',
       keywords: ['type', 'weakness', 'resistance', 'effectiveness', 'quiz', 'matchup', 'strategy'],
       action: onStartQuiz
@@ -45,17 +49,37 @@ const LandingPage: React.FC<LandingPageProps> = ({
       title: 'Move Mastery',
       description: 'Identify super-effective moves against specific sprites.',
       icon: '🧩',
-      category: 'Battle Mechanics',
+      category: 'Core Fundamentals',
       color: 'purple',
       keywords: ['move', 'attack', 'sprite', 'effective', 'super effective', 'resist', 'interaction'],
       action: onStartMoveQuiz
+    },
+    {
+      id: 'tera-specialist',
+      title: 'Tera Specialist',
+      description: 'Predict the optimal Tera Type to flip a defensive matchup.',
+      icon: '💎',
+      category: 'Advanced Tactics',
+      color: 'blue',
+      keywords: ['tera', 'terastallization', 'defensive', 'flip', 'matchup', 'prediction'],
+      action: onStartTeraQuiz
+    },
+    {
+      id: 'coverage-master',
+      title: 'Coverage Master',
+      description: 'Identify the best 4th move to bridge offensive gaps.',
+      icon: '🎯',
+      category: 'Advanced Tactics',
+      color: 'yellow',
+      keywords: ['coverage', 'offensive', 'move', 'pool', 'gap', 'optimization'],
+      action: onStartCoverageQuiz
     },
     {
       id: 'ability-oracle',
       title: 'Ability Oracle',
       description: 'Match ability descriptions to their competitive names.',
       icon: '🧿',
-      category: 'Ability Mastery',
+      category: 'Technical Knowledge',
       color: 'red',
       keywords: ['ability', 'description', 'oracle', 'name', 'effect', 'memorize'],
       action: onStartAbilityDesc
@@ -64,8 +88,8 @@ const LandingPage: React.FC<LandingPageProps> = ({
       id: 'ability-synergy',
       title: 'Ability Synergy',
       description: 'Identify which legal abilities belong to each Pokémon.',
-      icon: 'cyan',
-      category: 'Ability Mastery',
+      icon: '🧬',
+      category: 'Technical Knowledge',
       color: 'cyan',
       keywords: ['ability', 'synergy', 'pokemon', 'legal', 'pool', 'recognition'],
       action: onStartPokemonAbility
@@ -83,7 +107,7 @@ const LandingPage: React.FC<LandingPageProps> = ({
     );
   }, [searchQuery]);
 
-  const categories = ['Tactical Drills', 'Battle Mechanics', 'Ability Mastery'] as const;
+  const categories = ['Core Fundamentals', 'Advanced Tactics', 'Technical Knowledge'] as const;
 
   return (
     <div className="flex flex-col items-center w-full max-w-6xl mx-auto px-4 py-8 sm:py-16 space-y-20">

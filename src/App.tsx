@@ -3,6 +3,8 @@ import Quiz from './components/Quiz';
 import MoveQuiz from './components/MoveQuiz';
 import AbilityDescQuiz from './components/AbilityDescQuiz';
 import PokemonAbilityQuiz from './components/PokemonAbilityQuiz';
+import TeraQuiz from './components/TeraQuiz';
+import CoverageQuiz from './components/CoverageQuiz';
 import Resources from './components/Resources';
 import LandingPage from './components/LandingPage';
 import Leaderboard from './components/Leaderboard';
@@ -10,7 +12,7 @@ import AuthModal from './components/AuthModal';
 import { useAuth } from './context/AuthContext';
 import type { Difficulty } from './logic/quiz-engine';
 
-type View = 'landing' | 'type-quiz-menu' | 'type-quiz-game' | 'move-mastery' | 'ability-desc' | 'pokemon-ability' | 'resources' | 'leaderboard';
+type View = 'landing' | 'type-quiz-menu' | 'type-quiz-game' | 'move-mastery' | 'ability-desc' | 'pokemon-ability' | 'tera-quiz' | 'coverage-quiz' | 'resources' | 'leaderboard';
 
 function App() {
   const [view, setView] = useState<View>('landing');
@@ -46,6 +48,16 @@ function App() {
 
   const startPokemonAbility = () => {
     setView('pokemon-ability');
+    setDifficulty(null);
+  };
+
+  const startTeraQuiz = () => {
+    setView('tera-quiz');
+    setDifficulty(null);
+  };
+
+  const startCoverageQuiz = () => {
+    setView('coverage-quiz');
     setDifficulty(null);
   };
 
@@ -125,6 +137,8 @@ function App() {
             onStartMoveQuiz={startMoveMastery}
             onStartAbilityDesc={startAbilityDesc}
             onStartPokemonAbility={startPokemonAbility}
+            onStartTeraQuiz={startTeraQuiz}
+            onStartCoverageQuiz={startCoverageQuiz}
             activeGen={activeGen}
           />
         )}
@@ -211,6 +225,18 @@ function App() {
         {view === 'pokemon-ability' && (
           <div className="w-full max-w-2xl animate-in slide-in-from-top-8 duration-500">
             <PokemonAbilityQuiz onReset={resetToLanding} gen={activeGen} />
+          </div>
+        )}
+
+        {view === 'tera-quiz' && (
+          <div className="w-full max-w-2xl animate-in slide-in-from-top-8 duration-500">
+            <TeraQuiz onReset={resetToLanding} gen={activeGen} />
+          </div>
+        )}
+
+        {view === 'coverage-quiz' && (
+          <div className="w-full max-w-2xl animate-in slide-in-from-top-8 duration-500">
+            <CoverageQuiz onReset={resetToLanding} gen={activeGen} />
           </div>
         )}
       </main>

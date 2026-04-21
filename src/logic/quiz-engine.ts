@@ -33,6 +33,20 @@ export interface PokemonAbilityQuestion {
   correctAnswer: string;
 }
 
+export interface TeraQuestion {
+  attackerType: PokemonType;
+  pokemon: PokemonData;
+  options: PokemonType[];
+  correctAnswer: PokemonType;
+}
+
+export interface CoverageQuestion {
+  defender: PokemonData;
+  currentMoves: Move[];
+  options: Move[];
+  correctAnswer: Move;
+}
+
 export const calculateEffectiveness = (
   attacker: PokemonType, 
   defenderTypes: PokemonType[], 
@@ -211,4 +225,102 @@ export const generatePokemonAbilityQuestion = async (gen: number = 9): Promise<P
   const options = [correctAnswer, ...shuffledWrong.slice(0, 3).map(a => a.name)].sort(() => 0.5 - Math.random());
   
   return { pokemon, options, correctAnswer };
+};
+
+export const generateTeraQuestion = async (gen: number = 9): Promise<TeraQuestion> => {
+  const pokemon = await fetchRandomPokemon(gen);
+  const allowedTypes = getTypesForGen(gen);
+  
+  // Pick a random attacker type that is currently super effective against this pokemon
+  const superEffectiveAttackerTypes = allowedTypes.filter(t => 
+    calculateEffectiveness(t, pokemon.types, gen, pokemon.activeAbility) > 1
+  );
+  
+  const attackerType = superEffectiveAttackerTypes.length > 0 
+    ? superEffectiveAttackerTypes[Math.floor(Math.random() * superEffectiveAttackerTypes.length)]
+    : allowedTypes[Math.floor(Math.random() * allowedTypes.length)];
+
+  // Find the BEST defensive Tera type (minimizes damage)
+  // Sort types by effectiveness (lowest multiplier first)
+  const sortedByEffectiveness = [...allowedTypes].sort((a, b) => {
+    const effA = calculateEffectiveness(attackerType, [a], gen, pokemon.activeAbility);
+    const effB = calculateEffectiveness(attackerType, [b], gen, pokemon.activeAbility);
+    return effA - effB;
+  });
+
+  const bestMultiplier = calculateEffectiveness(attackerType, [sortedByEffectiveness[0]], gen, pokemon.activeAbility);
+  const bestTypes = sortedByEffectiveness.filter(t => 
+    calculateEffectiveness(attackerType, [t], gen, pokemon.activeAbility) === bestMultiplier
+  );
+  
+  const correctAnswer = bestTypes[Math.floor(Math.random() * bestTypes.length)];
+  
+  // Wrong options: Types that are neutral or worse (multiplier >= 1) 
+  // or at least worse than the correct answer
+  const wrongTypes = allowedTypes.filter(t => 
+    calculateEffectiveness(attackerType, [t], gen, pokemon.activeAbility) > bestMultiplier
+  );
+  
+  const shuffledWrong = wrongTypes.sort(() => 0.5 - Math.random());
+  const options = [correctAnswer, ...shuffledWrong.slice(0, 3)].sort(() => 0.5 - Math.random());
+  
+  return { attackerType, pokemon, options, correctAnswer };
+};
+
+export const generateCoverageQuestion = async (gen: number = 9): Promise<CoverageQuestion> => {
+  const defender = await fetchRandomPokemon(gen);
+  const allowedTypes = getTypesForGen(gen);
+  const allowedMoves = MOVES.filter(m => allowedTypes.includes(m.type));
+
+  // Current moves should NOT be super effective
+  const neutralOrResistedMoves = allowedMoves.filter(m => 
+    calculateEffectiveness(m.type, defender.types, gen, defender.activeAbility) <= 1
+  );
+  
+  // Randomly pick 3 distinct types for current moves
+  const currentMoves: Move[] = [];
+  const usedTypes = new Set<PokemonType>();
+  const shuffledNeutral = [...neutralOrResistedMoves].sort(() => 0.5 - Math.random());
+  
+  for (const move of shuffledNeutral) {
+    if (!usedTypes.has(move.type)) {
+      currentMoves.push(move);
+      usedTypes.add(move.type);
+    }
+    if (currentMoves.length === 3) break;
+  }
+
+  // Correct Answer: A move that IS super effective
+  const superEffectiveMoves = allowedMoves.filter(m => 
+    calculateEffectiveness(m.type, defender.types, gen, defender.activeAbility) > 1 &&
+    !usedTypes.has(m.type)
+  );
+  
+  if (superEffectiveMoves.length === 0 || currentMoves.length < 3) return generateCoverageQuestion(gen);
+  
+  const correctAnswer = superEffectiveMoves[Math.floor(Math.random() * superEffectiveMoves.length)];
+  
+  // Wrong Options: Other moves that are NOT super effective
+  const wrongMoves = allowedMoves.filter(m => 
+    calculateEffectiveness(m.type, defender.types, gen, defender.activeAbility) <= 1 &&
+    !usedTypes.has(m.type)
+  );
+  
+  const wrongOptions: Move[] = [];
+  const wrongTypes = new Set<PokemonType>();
+  const shuffledWrong = [...wrongMoves].sort(() => 0.5 - Math.random());
+  
+  for (const move of shuffledWrong) {
+    if (!wrongTypes.has(move.type)) {
+      wrongOptions.push(move);
+      wrongTypes.add(move.type);
+    }
+    if (wrongOptions.length === 3) break;
+  }
+  
+  if (wrongOptions.length < 3) return generateCoverageQuestion(gen);
+
+  const options = [correctAnswer, ...wrongOptions].sort(() => 0.5 - Math.random());
+
+  return { defender, currentMoves, options, correctAnswer };
 };
